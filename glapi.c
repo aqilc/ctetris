@@ -69,18 +69,8 @@ GLint getloc(char* name) {
   // There's no point if there's no program bound anyways
   if(!cur_prog) return -1;
   
-  // Gets the current drawcontext by comparing the current shaders bound, so we can retrieve the hashmap for the uniforms
-  drawcontext* dc; bool actual;
-  for(int i = 0; i < sizeof(((gamestate*)0)->contexts); i += sizeof(drawcontext*)) {
-    dc = (g.contexts.text + i);
-    if(dc->pid == cur_prog) { actual = true; break; }
-  }
-  
-  // If we didn't find anything, then this program probably needs to be registered and there are probably bigger problems so just return and die
-  if(!actual) return -1;
-  
   // Gets the location from cache or sets it in cache
-  GLint* v = (GLint*) htg(dc->u, name);
+  GLint* v = (GLint*) htg(cur_ctx->u, name);
   if(v == NULL) {
     v = new_i(0);
     *v = glGetUniformLocation(cur_prog, name);
@@ -99,6 +89,7 @@ void initcontext(drawcontext** d, char* shaderfile) {
   (*d)->pid = create_p(shaderfile);
   (*d)->u = ht(30);
   (*d)->vaid = *create_va(1);
+  cur_ctx = *d;
 }
 
 // Coordinate System -> Screen 1:1 Mapping
