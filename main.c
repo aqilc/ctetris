@@ -16,7 +16,7 @@
 #include <linmath.h>
 #include "util.h"
 #include "glapi.h"
-#include "text.h"
+#include "graphics.h"
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
@@ -74,25 +74,37 @@ int main (void) {
     printf("Couldn't load font :(\n"); return -1; }
 
   // Initializes text shaders and context
-  initcontext(&g.contexts.text, "res/shaders/text.glsl");
-
+  glinitgraphics();
+  
   // Loads most of the ASCII chars
   FT_Set_Pixel_Sizes(face, 0, 48);
-  charstore* font = loadgraphics(ft, face, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ[]{}()/\\=+\'\"<>,.-_?|!@#$%^&*");
+  charstore* font = loadchars(ft, face, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890[]{}()/\\=+\'\"<>,.-_?|!@#$%^&* :");
 
+  
   // Sets the coordinate system to screen 1:1 pixel mapping
   coords_screen();
 
   // GLFW input callbacks
   glfwSetMouseButtonCallback(window, mouse_button_callback);
   glfwSetCursorPosCallback(window, cursor_position_callback);
+
   
+  char fps[] = "       ";
   while(!glfwWindowShouldClose(window)) {
+    g.delta = glfwGetTime() - g.last;
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Draws "hello" on the screen
     text(font, "hello :D", 100, 100);
-    
+
+    sprintf(fps, "%.1f", 1.0 / g.delta);
+    text(font, fps, 500, 100);
+
+    //quad(200, 200, 300, 200, 200, 300, 300, 300, (vec4) { 1.0f, .5f, .3f, 1.0f });
+  
+    draw();
+    g.last = glfwGetTime();
+    //glfwSetWindowShouldClose(window, 1);
     glfwSwapBuffers(window);
     glfwPollEvents();
   }

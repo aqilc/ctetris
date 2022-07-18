@@ -1,42 +1,78 @@
 
 #include "graphics.h"
 
-unsigned short textsize = 48;
-shapeheap* sh = NULL;
+#define TEXTUREW 512
+#define TEXTUREH 512
+static unsigned short textsize = 48;
+static shapeheap* sh = NULL;
+static drawcontext* ctx = NULL;
+static unsigned short textures = 0;
+charstore** cses = NULL;
 
 // Initializes everything for text, including setting up textures etc
-void glinitgraphics(charstore* cs) {
-  cs->gl = texture(cs->tex, cs->texsize.w, cs->texsize.h, GL_RED);
-  cs->layout = calloc(sizeof(vlayout), 1);
-  lpushf(cs->layout, 2);
-  lpushf(cs->layout, 2);
-  
-  // Sets the texture to 0 just bc opengl gay
-  setui("tex", 0);
+void glinitgraphics() {
+  initcontext(&ctx, "res/shaders/graphics.glsl");
 
+  // Sets up layout
+  ctx->layout = calloc(sizeof(vlayout), 1);
+  lpushf(ctx->layout, 2);
+  lpushf(ctx->layout, 2);
+  lpushf(ctx->layout, 4);
+  
   // Mallocs the heap
   sh = calloc(1, sizeof(shapeheap));
+  sh->data.b = malloc(10 * sizeof(shapedata));
+  sh->data.size = 10;
+  sh->ib.b = malloc(10 * sizeof(shapedata));
+  sh->ib.size = 10;
+  sh->enlarged = true;
+}
+
+void tfont(charstore* cs) {
+  if(!cs->gl) {
+
+    // Sets active texture to the next one in the array
+    activet(textures);
+
+    // Gets textureid and stuff
+    cs->gl = texture(cs->tex, cs->texsize.w, cs->texsize.h, GL_RED);
+    cs->slot = textures;
+
+    // Sets the texture sampler to the one we just made
+    setui("u_tex", textures);
+    textures ++;
+  }
+  else {
+    activet(cs->slot);
+    bindt(cs->gl);
+    setui("u_tex", cs->slot);
+  }
 }
 
 void tsiz(unsigned short size) { textsize = size; }
 void text(charstore* cs, char* text, unsigned short x, unsigned short y) {
+
   float scale = (float) textsize / 48;
+
   
   // Sets up context
-  context(g.contexts.text);
-  if(!cs->gl) glinitgraphics(cs);
+  context(ctx);
+  if(!cs->gl) tfont(cs);
   bindt(cs->gl);
   
   // Sets up buffers
   unsigned int len = strlen(text);
   shapedata* vb = malloc(4 * len * sizeof(shapedata)); // starting vertices, and then 2 per character
-  unsigned short* ib = malloc(6 * sizeof(unsigned short) * len); // 6 vertices(2 triangles) per char
+  unsigned short* ib = (unsigned short*) malloc(6 * sizeof(unsigned short) * len); // 6 vertices(2 triangles) per char
   
   // Generates every vertex
+  unsigned short cur = sh->data.cur;
   float xp, yp, w, h, tx, ty, th, tw;
+  vec4 col = { 1.0, 1.0, 1.0, 1.0 };
   int i = 0;
-  for(; *text; text++, i++) {
+  for(; i < len; text++, i++) {
     Char* c = htg(cs->chars, new_c(*text));
+    if(!c) printf("bruh wtf u drawin \"%c\"", *text);
     
     xp = (float) x + c->bearing.x;
     yp = (float) y + c->bearing.y;
@@ -48,48 +84,51 @@ void text(charstore* cs, char* text, unsigned short x, unsigned short y) {
     tw = c->size.w / (float) cs->texsize.w;
     th = c->size.h / (float) cs->texsize.h;
     
-    vb[i * 4] = (shapedata) {{ xp, yp }, { tx, ty + th }};
-    vb[i * 4 + 1] = (shapedata) {{ xp + w, yp }, { tx + tw, ty + th }};
-    vb[i * 4 + 2] = (shapedata) {{ xp, yp + h }, { tx, ty }};
-    vb[i * 4 + 3] = (shapedata) {{ xp + w, yp + h }, { tx + tw, ty }};
-    
+    vb[i * 4] = (shapedata) {{ xp, yp }, { tx, ty + th }, { 1.0, 1.0, 1.0, 1.0 }};
+    vb[i * 4 + 1] = (shapedata) {{ xp + w, yp }, { tx + tw, ty + th }, { 1.0, 1.0, 1.0, 1.0 }};
+    vb[i * 4 + 2] = (shapedata) {{ xp, yp + h }, { tx, ty }, { 1.0, 1.0, 1.0, 1.0 }};
+    vb[i * 4 + 3] = (shapedata) {{ xp + w, yp + h }, { tx + tw, ty }, { 1.0, 1.0, 1.0, 1.0 }};
+
     // Advance cursors for next glyph
     x += c->advance;
   }
   
   // Sets all of the indexes of the index buffer, pretty straightforward
   for(i = 0; i < len; i ++) {
-    ib[i * 6] = i * 4 + 3;
-    ib[i * 6 + 1] = i * 4 + 0;
-    ib[i * 6 + 2] = i * 4 + 2;
+    ib[i * 6] = i * 4 + 3 + cur;
+    ib[i * 6 + 1] = i * 4 + 0 + cur;
+    ib[i * 6 + 2] = i * 4 + 2 + cur;
     
-    ib[i * 6 + 3] = i * 4 + 1;
-    ib[i * 6 + 4] = i * 4 + 3;
-    ib[i * 6 + 5] = i * 4 + 0;
+    ib[i * 6 + 3] = i * 4 + 1 + cur;
+    ib[i * 6 + 4] = i * 4 + 3 + cur;
+    ib[i * 6 + 5] = i * 4 + 0 + cur;
   }
-  
-  free(ib);
-  free(vb);
+
+  shapeinsert(vb, ib, 4 * len, 6 * len);
 }
 
-void draw() {  
-  if(!g.contexts.text->vbid) {
-    g.contexts.text->vbid = create_vb(vb, 4 * len * sizeof(shapedata)); 
-    lapply(cs->layout);
-  } else if() {
+void draw() {
+  if(!ctx->vbid) {
+    ctx->vbid = create_vb(sh->data.b, 4 * sh->data.cur * sizeof(shapedata));
+  } else if(sh->enlarged) {
     //bindv(g.contexts.text->vbid);
-    glBufferData(GL_ARRAY_BUFFER, 4 * len * sizeof(shapedata), vb, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 4 * sh->data.cur * sizeof(shapedata), sh->data.b, GL_DYNAMIC_DRAW);
+  lapply(ctx->layout);
+  } else if(sh->changed) {
+    glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * sh->data.cur * sizeof(shapedata), sh->data.b);
   }
-  
-  glDrawElements(GL_TRIANGLES, 6 * len, GL_UNSIGNED_SHORT, ib);
+
+  glDrawElements(GL_TRIANGLES, sh->ib.cur, GL_UNSIGNED_SHORT, sh->ib.b);
+  sh->data.cur = 0;
+  sh->ib.cur = 0;
 }
 
-charstore* loadgraphics(FT_Library ft, FT_Face face, char* chars) {
+charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
   
   // Creates a new charstore
   charstore* pog = calloc(sizeof(charstore), 1);
   pog->chars = ht(200);
-  vec texsize = { 256, 256 };
+  vec texsize = { TEXTUREW, TEXTUREH };
   pog->texsize = texsize;
   pog->tex = malloc(pog->texsize.x * pog->texsize.y * sizeof(unsigned char));
 
@@ -131,27 +170,28 @@ charstore* loadgraphics(FT_Library ft, FT_Face face, char* chars) {
     hti(pog->chars, new_c(chars[i]), ch);
   }
 
+  puts("bruh");
+
   // Draws a little white square in the corner of the texture atlas for shapes
-  for(int i = 0; i < 16; i --)
-    pog->tex[texsize.w - i % 4 + (i / 4 * texsize.h)] = 255;
+  for(int i = 16; i > 0; i --) pog->tex[texsize.w * texsize.h - i % 4 - (i / 4 * texsize.h)] = 255;
   
   // So we can ~~admire~~inspect the generated font atlas later
   stbi_write_png("bitmap.png", texsize.w, texsize.w, 1, pog->tex, texsize.w);
   return pog;
 }
 
-void quad(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) {
+void quad(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4, vec4 col) {
 
   // Creates the shape
   shapedata buf[4];
-  buf[0].pos.x = (float) x1;
-  buf[1].pos.x = (float) x2;
-  buf[2].pos.x = (float) x3;
-  buf[3].pos.x = (float) x4;
-  buf[0].pos.y = (float) y1;
-  buf[1].pos.y = (float) y2;
-  buf[2].pos.y = (float) y3;
-  buf[3].pos.y = (float) y4;
+  buf[0].pos[0] = (float) x1;
+  buf[1].pos[0] = (float) x2;
+  buf[2].pos[0] = (float) x3;
+  buf[3].pos[0] = (float) x4;
+  buf[0].pos[1] = (float) y1;
+  buf[1].pos[1] = (float) y2;
+  buf[2].pos[1] = (float) y3;
+  buf[3].pos[1] = (float) y4;
 
   // Creates the index buffer
   unsigned short ib[6];
@@ -159,14 +199,52 @@ void quad(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) {
   ib[1] = 1;
   ib[2] = 2;
   ib[3] = 1;
-  ib[4] = 3;
-  ib[5] = 2;
+  ib[4] = 2;
+  ib[5] = 3;
+
+  shape(buf, ib, 4, 6, col);
+  shapeinsert(buf, ib, 4, 6);
+}
+
+
+// Create a temporary array of texture coords so we can properly set them later
+float bruhwhyc[] = { 1.0f - 3.0f/ (float)TEXTUREW, 1.0f - 3.0f/ (float) TEXTUREH, 1.0f - 3.0f/ (float) TEXTUREW, 1.0f, 1.0f, 1.0f - 3.0f/ (float) TEXTUREH, 1.0f, 1.0f };
+void shape(shapedata* data, unsigned short* ib, unsigned short bs, unsigned short is, vec4 col) {
+  int cur = sh->data.cur;
+  for(int i = 0; i < is; i ++) ib[i] += cur;
+
+  // Sets up color and texture coords for all 4 verts at once
+  for(char i = 0; i < bs; i ++)
+    memcpy(data[i].col, col, sizeof(vec4)), memcpy(data[i].tex, bruhwhyc + (i%4) * 2, sizeof(float) * 2);
 }
 
 static void shapeinsert(shapedata* buf, unsigned short* ib, size_t bs, size_t is) {
-  if(!sh->capacity) {
-    shmalloc();
+  if(sh->data.size < sh->data.cur + bs){
+    puts("adding stuff to vb");
+    sh->data.b = realloc(sh->data.b, sizeof(shapedata) * (sh->data.cur + bs));
+    memcpy(sh->data.b + sh->data.cur, buf, bs * sizeof(shapedata));
+    sh->data.cur += bs;
+    sh->data.size = sh->data.cur;
+    sh->changed = true;
+    sh->enlarged = true;
   }
-  if(sh->capacity < sh->size + bs){}
-  if (memcmp(buf, sh->data, bs))
+  else if (memcmp(sh->data.b + sh->data.cur, buf, bs)) {
+    memcpy(sh->data.b + sh->data.cur, buf, bs);
+    sh->changed = true;
+  } else sh->data.cur += bs;
+
+  if(sh->ib.size < sh->ib.cur + is){
+    puts("adding stuff to ib");
+    sh->ib.b = realloc(sh->ib.b, sizeof(unsigned short) * (sh->ib.cur + is));
+    memcpy(sh->ib.b + sh->ib.cur, ib, is * sizeof(unsigned short));
+    sh->ib.cur += is;
+    sh->ib.size = sh->ib.cur;
+    sh->changed = true;
+    sh->enlarged = true;
+  }
+  else if (memcmp(sh->ib.b + sh->ib.cur, buf, is)) {
+    memcpy(sh->ib.b + sh->ib.cur, ib, is * sizeof(unsigned short));
+    sh->changed = true;
+    sh->ib.cur += is;
+  } else sh->ib.cur += is;
 }

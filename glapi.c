@@ -9,7 +9,7 @@ GLuint cur_prog = 0;
 drawcontext* cur_ctx = NULL;
 
 GLuint* create_va(char n) {
-  GLuint* a = malloc(n * sizeof(GLuint));
+  GLuint* a = (GLuint*) malloc(n * sizeof(GLuint));
   glGenVertexArrays(n, a);
   binda(*a);
   return a;
@@ -37,20 +37,29 @@ void bindv(GLuint id) { glBindBuffer(GL_ARRAY_BUFFER, id); cur_vb = id; }
 void bindi(GLuint id) { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id); cur_ib = id; }
 void bindp(GLuint id) { glUseProgram(id); cur_prog = id; }
 
-void activet(GLuint id, char slot) { glActiveTexture(GL_TEXTURE0 + slot); }
+void activet(char slot) { glActiveTexture(GL_TEXTURE0 + slot); }
 void bindt(GLuint id) { glBindTexture(GL_TEXTURE_2D, id); }
+
+unsigned short getsize(GLenum type) {
+  switch(type) {
+    case GL_BYTE:
+    case GL_UNSIGNED_BYTE:
+      return 1; break;
+    default: return 4; break;
+  }
+}
 
 void lpush(vlayout* l, GLuint type, unsigned char count, bool normalized) {
   struct ltype** cur = &l->types;
   while (*cur != NULL) cur = &(*cur)->next;
-  *cur = calloc(sizeof(struct ltype), 1);
+  (*cur) = (struct ltype*) calloc(sizeof(struct ltype), 1);
   (*cur)->type = type;
   (*cur)->count = count;
   (*cur)->normalized = normalized;
 }
 void lpushf(vlayout* l, unsigned char count) { l->stride += 4 * count; lpush(l, GL_FLOAT, count, false); }
 void lpushc(vlayout* l, unsigned char count) { l->stride += 1 * count; lpush(l, GL_UNSIGNED_BYTE, count, true); }
-void lpushi(vlayout* l, unsigned char count) { l->stride += 4 * count; lpush(l, GL_UNSIGNED_INT, count, false); }
+void lpushi(vlayout* l, unsigned char count) { l->stride += 4 * count; lpush(l, GL_INT, count, false); }
 
 void lapply(vlayout* l) {
   struct ltype* cur = l->types;
@@ -58,7 +67,7 @@ void lapply(vlayout* l) {
   while(cur != NULL) {
     glEnableVertexAttribArray(i);
     glVertexAttribPointer(i, cur->count, cur->type, cur->normalized ? GL_TRUE : GL_FALSE, l->stride, (const void*) offset);
-    offset += cur->count * 4; i++;
+    offset += cur->count * getsize(cur->type); i++;
     cur = cur->next;
   }
 }
@@ -74,7 +83,7 @@ GLint getloc(char* name) {
   if(v == NULL) {
     v = new_i(0);
     *v = glGetUniformLocation(cur_prog, name);
-    hti(dc->u, new_s(name), v);
+    hti(cur_ctx->u, new_s(name), v);
   }
   return *v;
 }
@@ -85,9 +94,9 @@ void setuf(char* name, vec3 p) { glUniform3f(getloc(name), p[0], p[1], p[2]); }
 
 void context(drawcontext* c) { bindp(c->pid); binda(c->vaid); }
 void initcontext(drawcontext** d, char* shaderfile) {
-  (*d) = calloc(sizeof(drawcontext), 1);
+  (*d) = (drawcontext*) calloc(sizeof(drawcontext), 1);
   (*d)->pid = create_p(shaderfile);
-  (*d)->u = ht(30);
+  (*d)->u = ht(32);
   (*d)->vaid = *create_va(1);
   cur_ctx = *d;
 }
@@ -101,7 +110,7 @@ void coords_screen() {
   
   // Creates a projection to screencoords
   mat4x4_ortho(p, .0f, (float) g.width, .0f, (float) g.height, 1.0f, -1.f);
-  setum4("mvp", p);
+  setum4("u_mvp", p);
 }
 
 GLuint texture(unsigned char* buf, int width, int height, GLenum format) {

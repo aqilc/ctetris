@@ -6,9 +6,9 @@
 #include FT_FREETYPE_H
 
 typedef struct shapedata {
-  vec2 coords;
+  vec2 pos;
   vec2 tex;
-  // vec3 col;
+  vec4 col;
 } shapedata;
 
 typedef struct shapeheap {
@@ -24,6 +24,7 @@ typedef struct shapeheap {
   } ib;
   unsigned int shapes;
   bool changed;
+  bool enlarged;
 } shapeheap;
 
 typedef struct Char {
@@ -43,16 +44,19 @@ typedef struct charstore {
   unsigned char* tex;
   vec texsize;
   unsigned int gl;
-  vlayout* layout;
+  GLuint slot;
 } charstore;
-charstore* loadgraphics(FT_Library ft, FT_Face face, char* chars);
+charstore* loadchars(FT_Library ft, FT_Face face, char* chars);
 
-void glinitgraphics(charstore* cs);
+void glinitgraphics();
+void tfont(charstore* cs);
 void tsiz(unsigned short size);
 void text(charstore* cs, char* text, unsigned short x, unsigned short y);
 
 void draw(void);
-void quad(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
+void quad(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4, vec4 col);
 
 static void shapeinsert(shapedata* buf, unsigned short* ib, size_t bs, size_t is);
+
+void shape(shapedata* data, unsigned short* ib, unsigned short bs, unsigned short is, vec4 col);
 

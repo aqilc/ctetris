@@ -17,7 +17,7 @@ echo running %c%
 %c%
 link freetype.lib glew32s.lib shell32.lib Gdi32.lib user32.lib opengl32.lib glfw3.lib cstl.lib *.obj /nologo /LIBPATH:d:\projects\libs\bin\ /NODEFAULTLIB:libcmt.lib /OUT:main.exe
 
-rem gcc -O3 -Id:\projects\libs\include\ -I"d:\Apps and Files\Apps\vcpkg\installed\x86-windows\include" main.c util.c -lfreetype -lglew32s -lshell32 -lGdi32 -luser32 -lopengl32 -lglfw3 -lcstl -Ld:\projects\libs\bin
+rem gcc -O3 -Id:\projects\libs\include\ -I"d:\Apps and Files\Apps\vcpkg\installed\x86-windows\include" main.c util.c -lfreetype -lglew32s -lshell32 -lGdi32 -luser32 -lopengl32 -lglfw3 -Ld:\projects\libs\bin
 
 rem /ENTRY:mainCRTStartup /SUBSYSTEM:WINDOWS
 

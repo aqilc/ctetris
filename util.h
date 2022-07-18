@@ -19,10 +19,9 @@ typedef struct CharNode {
 } CharNode;
 CharNode* charnode_insert(CharNode* pnode, vec* size);
 
-
-typedef struct drawcontext { unsigned int pid, vaid, vbid, ibid; hashtable* u; /*uniforms*/ } drawcontext;
 typedef struct gamestate {
-  float delta; // Delta time in the last frame
+  double delta; // Delta time in the last frame
+  float last;
   int width, height; // Starting width and height of window
 } gamestate;
 

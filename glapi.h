@@ -18,6 +18,12 @@ typedef struct vlayout {
   unsigned short stride;
 } vlayout;
 
+typedef struct drawcontext {
+  GLuint pid, vaid, vbid, ibid;
+  hashtable* u; // uniforms
+  vlayout* layout;
+} drawcontext;
+
 GLuint* create_va(char n);
 GLuint create_vb(void* data, unsigned int size);
 GLuint create_ib(short* data, unsigned int size);
@@ -27,7 +33,7 @@ void bindv(GLuint id);
 void bindi(GLuint id);
 void bindp(GLuint id);
 
-void activet(GLuint id, char slot);
+void activet(char slot);
 void bindt(GLuint id);
 GLuint texture(unsigned char* buf, int width, int height, GLenum format);
 
