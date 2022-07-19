@@ -7,7 +7,8 @@ static unsigned short textsize = 48;
 static shapeheap* sh = NULL;
 static drawcontext* ctx = NULL;
 static unsigned short textures = 0;
-charstore** cses = NULL;
+static charstore** cses = NULL;
+static 
 
 // Initializes everything for text, including setting up textures etc
 void glinitgraphics() {
@@ -23,8 +24,10 @@ void glinitgraphics() {
   sh = calloc(1, sizeof(shapeheap));
   sh->data.b = malloc(10 * sizeof(shapedata));
   sh->data.size = 10;
+  sh->data.cur = 0;
   sh->ib.b = malloc(10 * sizeof(shapedata));
   sh->ib.size = 10;
+  sh->ib.cur = 0;
   sh->enlarged = true;
 }
 
@@ -109,13 +112,14 @@ void text(charstore* cs, char* text, unsigned short x, unsigned short y) {
 
 void draw() {
   if(!ctx->vbid) {
-    ctx->vbid = create_vb(sh->data.b, 4 * sh->data.cur * sizeof(shapedata));
+    ctx->vbid = create_vb(sh->data.b, sh->data.cur * sizeof(shapedata));
+    lapply(ctx->layout);
   } else if(sh->enlarged) {
     //bindv(g.contexts.text->vbid);
-    glBufferData(GL_ARRAY_BUFFER, 4 * sh->data.cur * sizeof(shapedata), sh->data.b, GL_DYNAMIC_DRAW);
-  lapply(ctx->layout);
+    glBufferData(GL_ARRAY_BUFFER, sh->data.cur * sizeof(shapedata), sh->data.b, GL_DYNAMIC_DRAW);
   } else if(sh->changed) {
-    glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * sh->data.cur * sizeof(shapedata), sh->data.b);
+    bindv(ctx->vbid);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sh->data.cur * sizeof(shapedata), sh->data.b);
   }
 
   glDrawElements(GL_TRIANGLES, sh->ib.cur, GL_UNSIGNED_SHORT, sh->ib.b);
@@ -215,7 +219,16 @@ void shape(shapedata* data, unsigned short* ib, unsigned short bs, unsigned shor
 
   // Sets up color and texture coords for all 4 verts at once
   for(char i = 0; i < bs; i ++)
-    memcpy(data[i].col, col, sizeof(vec4)), memcpy(data[i].tex, bruhwhyc + (i%4) * 2, sizeof(float) * 2);
+    memcpy(data[i].col, col, sizeof(vec4)), memcpy(data[i].tex, bruhwhyc + (i%4) * 2, sizeof(vec2));
+}
+
+void shapecolor(vec4 col, unsigned short verts) {
+  for(unsigned short i = verts; i > 0; i --)
+    memcpy(sh->data.b[sh->data.cur - i].col, col, sizeof(vec4));
+}
+
+void rect(int x, int y, int w, int h) {
+  quad();
 }
 
 static void shapeinsert(shapedata* buf, unsigned short* ib, size_t bs, size_t is) {
@@ -229,7 +242,8 @@ static void shapeinsert(shapedata* buf, unsigned short* ib, size_t bs, size_t is
     sh->enlarged = true;
   }
   else if (memcmp(sh->data.b + sh->data.cur, buf, bs)) {
-    memcpy(sh->data.b + sh->data.cur, buf, bs);
+    memcpy(sh->data.b + sh->data.cur, buf, bs * sizeof(shapedata));
+    sh->data.cur += bs;
     sh->changed = true;
   } else sh->data.cur += bs;
 

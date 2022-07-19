@@ -26,6 +26,6 @@ uniform sampler2D u_tex;
 
 void main()
 {
-    color = vec4(v_col.xyz, texture(u_tex, v_text).r);
+    color = vec4(v_col.xyz, texture(u_tex, v_text).r * v_col.w);
     // color = vec4(textColor, 1.0) * sampled;
 }

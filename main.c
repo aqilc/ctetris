@@ -89,24 +89,27 @@ int main (void) {
   glfwSetCursorPosCallback(window, cursor_position_callback);
 
   
-  char fps[] = "       ";
+  char* fps = malloc(7);
   while(!glfwWindowShouldClose(window)) {
     g.delta = glfwGetTime() - g.last;
     glClear(GL_COLOR_BUFFER_BIT);
 
+    if(g.delta > 100) printf("%.1f", g.delta);
+
+    sprintf(fps, "%.1f", 1.0 / g.delta);
+    //puts(fps);
+    text(font, fps, 500, 100);
+
     // Draws "hello" on the screen
     text(font, "hello :D", 100, 100);
 
-    sprintf(fps, "%.1f", 1.0 / g.delta);
-    text(font, fps, 500, 100);
-
-    //quad(200, 200, 300, 200, 200, 300, 300, 300, (vec4) { 1.0f, .5f, .3f, 1.0f });
+    quad(100, 100, 300, 200, 200, 300, 300, 300, (vec4) { 1.0f, .5f, .3f, 1.0f });
   
     draw();
-    g.last = glfwGetTime();
     //glfwSetWindowShouldClose(window, 1);
     glfwSwapBuffers(window);
     glfwPollEvents();
+    g.last = glfwGetTime();
   }
   
   return 0;

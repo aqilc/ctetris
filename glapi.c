@@ -143,7 +143,7 @@ unsigned int compileshader(unsigned int type, char* src) {
   
   if(res == GL_FALSE) {
     int length; glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-    char* message = (char*) malloc(length * sizeof(char));
+    char* message = (char*) malloc(length * sizeof char);
     glGetShaderInfoLog(id, length, &length, message);
     printf("Failed to compile %s shader!\n%s\n", (type == GL_VERTEX_SHADER ? "vertex" : "fragment"), message);
     glDeleteShader(id); return 0;
