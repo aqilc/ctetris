@@ -19,7 +19,7 @@ GLuint create_vb(void* data, unsigned int size) {
   GLuint b;
   glGenBuffers(1, &b);
   bindv(b);
-  glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
   return b;
 }
 
@@ -27,7 +27,7 @@ GLuint create_ib(short* data, unsigned int size) {
   GLuint b;
   glGenBuffers(1, &b);
   bindi(b);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, size * sizeof(short), data, GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, size * sizeof(short), data, GL_DYNAMIC_DRAW);
   return b;
 }
 
@@ -92,7 +92,7 @@ void setum4(char* name, mat4x4 p) { glUniformMatrix4fv(getloc(name), 1, GL_FALSE
 void setui(char* name, unsigned int p) { glUniform1i(getloc(name), p); }
 void setuf(char* name, vec3 p) { glUniform3f(getloc(name), p[0], p[1], p[2]); }
 
-void context(drawcontext* c) { bindp(c->pid); binda(c->vaid); }
+void context(drawcontext* c) { cur_ctx = c; bindp(c->pid); binda(c->vaid); }
 void initcontext(drawcontext** d, char* shaderfile) {
   (*d) = (drawcontext*) calloc(sizeof(drawcontext), 1);
   (*d)->pid = create_p(shaderfile);
@@ -143,7 +143,7 @@ unsigned int compileshader(unsigned int type, char* src) {
   
   if(res == GL_FALSE) {
     int length; glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-    char* message = (char*) malloc(length * sizeof char);
+    char* message = (char*) malloc(length * sizeof(char));
     glGetShaderInfoLog(id, length, &length, message);
     printf("Failed to compile %s shader!\n%s\n", (type == GL_VERTEX_SHADER ? "vertex" : "fragment"), message);
     glDeleteShader(id); return 0;

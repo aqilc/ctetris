@@ -22,6 +22,7 @@ CharNode* charnode_insert(CharNode* pnode, vec* size);
 typedef struct gamestate {
   double delta; // Delta time in the last frame
   double last;
+  unsigned int frames;
   int width, height; // Starting width and height of window
 } gamestate;
 

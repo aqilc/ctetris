@@ -5,10 +5,6 @@
 
 #include "util.h"
 
-// temporary stuff
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb/stb_image_write.h"
-
 // Unperformant file reader, but it works ok :(
 char* read(char* file) {
   FILE *fp = fopen(file, "rb");

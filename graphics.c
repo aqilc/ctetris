@@ -8,11 +8,11 @@ static shapeheap* sh = NULL;
 static drawcontext* ctx = NULL;
 static unsigned short textures = 0;
 static charstore** cses = NULL;
-static 
+static vec4 col = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 // Initializes everything for text, including setting up textures etc
 void glinitgraphics() {
-  initcontext(&ctx, "res/shaders/graphics.glsl");
+  initcontext(&ctx, "d:/projects/c/ctetris/res/shaders/graphics.glsl");
 
   // Sets up layout
   ctx->layout = calloc(sizeof(vlayout), 1);
@@ -20,7 +20,7 @@ void glinitgraphics() {
   lpushf(ctx->layout, 2);
   lpushf(ctx->layout, 4);
   
-  // Mallocs the heap
+  // Allocs the heap
   sh = calloc(1, sizeof(shapeheap));
   sh->data.b = malloc(10 * sizeof(shapedata));
   sh->data.size = 10;
@@ -78,7 +78,7 @@ void text(charstore* cs, char* text, unsigned short x, unsigned short y) {
     if(!c) printf("bruh wtf u drawin \"%c\"", *text);
     
     xp = (float) x + c->bearing.x;
-    yp = (float) y + c->bearing.y;
+    yp = (float) y + c->bearing.y - c->size.h;
     w = (float) c->size.w * scale;
     h = (float) c->size.h * scale;
 
@@ -113,18 +113,27 @@ void text(charstore* cs, char* text, unsigned short x, unsigned short y) {
 void draw() {
   if(!ctx->vbid) {
     ctx->vbid = create_vb(sh->data.b, sh->data.cur * sizeof(shapedata));
+    ctx->ibid = create_ib(sh->ib.b, sh->ib.cur * sizeof(unsigned short));
     lapply(ctx->layout);
   } else if(sh->enlarged) {
-    //bindv(g.contexts.text->vbid);
+    // bindv(ctx->vbid);
     glBufferData(GL_ARRAY_BUFFER, sh->data.cur * sizeof(shapedata), sh->data.b, GL_DYNAMIC_DRAW);
+    // bindi(ctx->ibid);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sh->ib.cur * sizeof(unsigned short), sh->ib.b, GL_DYNAMIC_DRAW);
   } else if(sh->changed) {
-    bindv(ctx->vbid);
+    // bindv(ctx->vbid);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sh->data.cur * sizeof(shapedata), sh->data.b);
+    // bindi(ctx->ibid);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sh->ib.cur * sizeof(unsigned short), sh->ib.b);
   }
 
-  glDrawElements(GL_TRIANGLES, sh->ib.cur, GL_UNSIGNED_SHORT, sh->ib.b);
+  glDrawElements(GL_TRIANGLES, sh->ib.cur, GL_UNSIGNED_SHORT, NULL);//sh->ib.b);
+
+  // Resets cursors and since the data has been processed, reset the changed and enlarged booleans
   sh->data.cur = 0;
   sh->ib.cur = 0;
+  sh->changed = false;
+  sh->enlarged = false;
 }
 
 charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
@@ -174,8 +183,6 @@ charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
     hti(pog->chars, new_c(chars[i]), ch);
   }
 
-  puts("bruh");
-
   // Draws a little white square in the corner of the texture atlas for shapes
   for(int i = 16; i > 0; i --) pog->tex[texsize.w * texsize.h - i % 4 - (i / 4 * texsize.h)] = 255;
   
@@ -184,7 +191,7 @@ charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
   return pog;
 }
 
-void quad(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4, vec4 col) {
+void quad(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) {
 
   // Creates the shape
   shapedata buf[4];
@@ -228,16 +235,29 @@ void shapecolor(vec4 col, unsigned short verts) {
 }
 
 void rect(int x, int y, int w, int h) {
-  quad();
+  quad(x, y, x + w, y, x, y + h, x + w, y + h);
 }
 
+void c(float c1, float c2, float c3, float c4) {
+  col[0] = c1; col[1] = c2; col[2] = c3; col[3] = c4; }
+
 static void shapeinsert(shapedata* buf, unsigned short* ib, size_t bs, size_t is) {
+
+  // If the memory buffer for the buffer data heap is not enough,
   if(sh->data.size < sh->data.cur + bs){
     puts("adding stuff to vb");
+
+    // Ask for bigger size
     sh->data.b = realloc(sh->data.b, sizeof(shapedata) * (sh->data.cur + bs));
+
+    // Copy into it
     memcpy(sh->data.b + sh->data.cur, buf, bs * sizeof(shapedata));
+
+    // Advance cursor and size
     sh->data.cur += bs;
     sh->data.size = sh->data.cur;
+
+    // Set changed and enlarged so we can reupload the data later
     sh->changed = true;
     sh->enlarged = true;
   }

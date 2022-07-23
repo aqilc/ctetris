@@ -4,6 +4,7 @@
 
 #define GLEW_STATIC
 #include <GL/glew.h>
+
 #include <linmath.h>
 #include "util.h"
 

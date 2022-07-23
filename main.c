@@ -24,10 +24,13 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
 
 GLFWwindow* window;
 
-gamestate g = { .width = 640, .height = 480 };
+gamestate g = { .width = 640, .height = 480, .frames = 0 };
 
 bool pressed = false;
 pvec mouse;
+
+double frameaccum = 0;
+char framerate[12];
 
 int main (void) {
   
@@ -51,7 +54,7 @@ int main (void) {
   glfwMakeContextCurrent(window);
   
   // Set the framerate to the framerate of the screen.
-  glfwSwapInterval(1);
+  //glfwSwapInterval(1);
   
   // Initialize GLEW so we can reference OpenGL functions.
   if(glewInit()/* != GLEW_OK */) {
@@ -70,17 +73,17 @@ int main (void) {
   FT_Library ft; FT_Face face;
   if(FT_Init_FreeType(&ft)) {
     printf("Couldn't init freetype :(\n"); return -1; }
-  if(FT_New_Face(ft, "res/fonts/iosevka-bold.ttf", 0, &face)) {
+  if(FT_New_Face(ft, "d:/projects/c/ctetris/res/fonts/iosevka-bold.ttf", 0, &face)) {
     printf("Couldn't load font :(\n"); return -1; }
 
   // Initializes text shaders and context
   glinitgraphics();
-  
+
   // Loads most of the ASCII chars
   FT_Set_Pixel_Sizes(face, 0, 48);
   charstore* font = loadchars(ft, face, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890[]{}()/\\=+\'\"<>,.-_?|!@#$%^&* :");
 
-  
+
   // Sets the coordinate system to screen 1:1 pixel mapping
   coords_screen();
 
@@ -88,30 +91,38 @@ int main (void) {
   glfwSetMouseButtonCallback(window, mouse_button_callback);
   glfwSetCursorPosCallback(window, cursor_position_callback);
 
-  
-  char* fps = malloc(7);
+
   while(!glfwWindowShouldClose(window)) {
+
+    // Framerate stuff
     g.delta = glfwGetTime() - g.last;
+    g.last = glfwGetTime();
+    g.frames ++;
+    frameaccum += 1.0/g.delta;
+
+    // If there have been more than 10 accumulated frames, reset the accumulation and update framecount
+    if(g.frames % 10 == 0) {
+      snprintf(framerate, sizeof(framerate), "%.2f fps", frameaccum/10);
+      frameaccum = 0;
+    }
+
     glClear(GL_COLOR_BUFFER_BIT);
 
-    if(g.delta > 100) printf("%.1f", g.delta);
+    //printf("%.4f\n", g.delta);
+    text(font, framerate, 350, 100);
 
-    sprintf(fps, "%.1f", 1.0 / g.delta);
-    //puts(fps);
-    text(font, fps, 500, 100);
+    c(1.0f, .5f, .3f, 1.0f);
+    rect(100, 100, 200, 10);
 
     // Draws "hello" on the screen
     text(font, "hello :D", 100, 100);
 
-    quad(100, 100, 300, 200, 200, 300, 300, 300, (vec4) { 1.0f, .5f, .3f, 1.0f });
-  
     draw();
     //glfwSetWindowShouldClose(window, 1);
     glfwSwapBuffers(window);
     glfwPollEvents();
-    g.last = glfwGetTime();
   }
-  
+
   return 0;
 }
 
