@@ -1,6 +1,10 @@
 
 #include "graphics.h"
 
+// temporary stuff
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb/stb_image_write.h"
+
 #define TEXTUREW 512
 #define TEXTUREH 512
 static unsigned short textsize = 48;

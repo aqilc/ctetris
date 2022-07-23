@@ -2,10 +2,6 @@
 #include "util.h"
 #include "glapi.h"
 
-// temporary stuff
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb/stb_image_write.h"
-
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
