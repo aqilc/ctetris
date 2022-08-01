@@ -12,8 +12,9 @@ typedef struct hashitem {
 typedef struct hashtable {
   char** keys;
   hashitem** t;
-  unsigned int size;
+  unsigned short size;
   unsigned int count;
+  unsigned int keyssize;
 } hashtable;
 
 hashtable* ht(unsigned short size);
@@ -30,3 +31,4 @@ int htgi(hashtable* h, char* key);
 unsigned int htgui(hashtable* h, char* key);
 float htgf(hashtable* h, char* key);
 
+static void pushs(hashtable* h, char* s);
