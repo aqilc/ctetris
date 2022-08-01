@@ -6,6 +6,7 @@
 #include <GL/glew.h>
 
 #include <linmath.h>
+#include "util/hash.h"
 #include "util.h"
 
 struct ltype {
@@ -49,7 +50,7 @@ GLint getloc(char* name);
 
 void setum4(char* name, mat4x4 p);
 void setui(char* name, unsigned int p);
-void setuf(char* name, vec3 p);
+void setu3f(char* name, vec3 p);
 
 void context(drawcontext* c);
 void initcontext(drawcontext** d, char* shaderfile);

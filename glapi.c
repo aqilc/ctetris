@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "glapi.h"
 
 GLuint cur_va = 0;
@@ -90,7 +91,8 @@ GLint getloc(char* name) {
 
 void setum4(char* name, mat4x4 p) { glUniformMatrix4fv(getloc(name), 1, GL_FALSE, (const GLfloat*) p); }
 void setui(char* name, unsigned int p) { glUniform1i(getloc(name), p); }
-void setuf(char* name, vec3 p) { glUniform3f(getloc(name), p[0], p[1], p[2]); }
+void setu3f(char* name, vec3 p) { glUniform3f(getloc(name), p[0], p[1], p[2]); }
+void setu2f(char* name, vec2 p) { glUniform2f(getloc(name), p[0], p[1]); }
 
 void context(drawcontext* c) { cur_ctx = c; bindp(c->pid); binda(c->vaid); }
 void initcontext(drawcontext** d, char* shaderfile) {
