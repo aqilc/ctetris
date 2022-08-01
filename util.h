@@ -2,7 +2,6 @@
 #define UTIL_H
 
 #include <stdbool.h>
-#include "util/hash.h"
 
 typedef union vec {
   struct { int x; int y; };
