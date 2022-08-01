@@ -15,7 +15,7 @@ char* read(char* file) {
   
   // Finds length of file
   fseek(fp, 0, SEEK_END);
-  int len = ftell(fp);
+  long len = ftell(fp);
   rewind(fp);
   
   // Mallocs enough for the file + nullbyte i think
