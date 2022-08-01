@@ -1,6 +1,5 @@
-
-
 #include <stdio.h>
+#include <math.h>
 
 // GLEW, for opengl functions
 #define GLEW_STATIC
@@ -13,10 +12,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-#include <linmath.h>
-#include "util.h"
-#include "glapi.h"
-#include "graphics.h"
+#include "2dgraphics.h"
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
@@ -27,6 +23,7 @@ GLFWwindow* window;
 gamestate g = { .width = 640, .height = 480, .frames = 0 };
 
 bool pressed = false;
+pvec pressplace;
 pvec mouse;
 
 double frameaccum = 0;
@@ -92,6 +89,7 @@ int main (void) {
   glfwSetCursorPosCallback(window, cursor_position_callback);
 
 
+  bool textchanged = true;
   while(!glfwWindowShouldClose(window)) {
 
     // Framerate stuff
@@ -101,21 +99,24 @@ int main (void) {
     frameaccum += 1.0/g.delta;
 
     // If there have been more than 10 accumulated frames, reset the accumulation and update framecount
-    if(g.frames % 10 == 0) {
-      snprintf(framerate, sizeof(framerate), "%.2f fps", frameaccum/10);
+    if(g.frames % 100 == 0) {
+      snprintf(framerate, sizeof(framerate), "%.2f fps", frameaccum/100);
       frameaccum = 0;
+      textchanged = true;
     }
 
     glClear(GL_COLOR_BUFFER_BIT);
-
-    //printf("%.4f\n", g.delta);
-    text(font, framerate, 350, 100);
+    //setu2f("mouse", (vec2) { (float) mouse.x, (float) mouse.y });
 
     c(1.0f, .5f, .3f, 1.0f);
     rect(100, 100, 200, 10);
 
-    // Draws "hello" on the screen
-    text(font, "hello :D", 100, 100);
+    // printf("%.4f\n", g.delta);
+    if(textchanged) {
+      tsiz(20);
+      text(framerate, 100, 100);
+      textchanged = false;
+    } else skip(TEXT, strlen(framerate));
 
     draw();
     //glfwSetWindowShouldClose(window, 1);
@@ -130,14 +131,16 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
   if (action == GLFW_PRESS)
     if(button == GLFW_MOUSE_BUTTON_RIGHT)
       glfwSetWindowShouldClose(window, 1);
-    else { pressed = true; glfwGetCursorPos(window, &mouse.x, &mouse.y); }
+    else { pressed = true; glfwGetCursorPos(window, &pressplace.x, &pressplace.y); }
   else pressed = false;
 }
 
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+  mouse.x = xpos;
+  mouse.y = ypos;
   if(pressed) {
     int wxpos, wypos;
     glfwGetWindowPos(window, &wxpos, &wypos);
-    glfwSetWindowPos(window, (int) (xpos - mouse.x) + wxpos, (int) (ypos - mouse.y) + wypos);
+    glfwSetWindowPos(window, (int) (xpos - pressplace.x) + wxpos, (int) (ypos - pressplace.y) + wypos);
   }
 }
