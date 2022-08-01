@@ -12,7 +12,7 @@ add_executable(ctetris
         util/hash.c
         util/hashfunc.c
         glapi.c
-        graphics.c
+        2dgraphics.c
         main.c
         tetris.c
         util.c)
