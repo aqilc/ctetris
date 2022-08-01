@@ -1,4 +1,7 @@
 
+#ifndef TWODGRAPHICS_H
+#define TWODGRAPHICS_H
+
 #include "util.h"
 #include "glapi.h"
 
@@ -37,6 +40,7 @@ typedef struct Char {
 } Char;
 
 typedef struct charstore {
+  char* name;
   hashtable* chars;
   
   // Opengl stuffs
@@ -47,17 +51,24 @@ typedef struct charstore {
 } charstore;
 charstore* loadchars(FT_Library ft, FT_Face face, char* chars);
 
+typedef enum{
+  QUAD,
+  TEXT
+} drawprimitives;
+
 void glinitgraphics();
-void tfont(charstore* cs);
+void tfont(char* name);
 void tsiz(unsigned short size);
-void text(charstore* cs, char* text, unsigned short x, unsigned short y);
+void text(char* text, unsigned short x, unsigned short y);
 
 void draw(void);
 void quad(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
 void rect(int x, int y, int w, int h);
 void c(float c1, float c2, float c3, float c4);
 
-static void shapeinsert(shapedata* buf, unsigned short* ib, size_t bs, size_t is);
+void skip(drawprimitives prim, unsigned short n);
+static void shapeinsert(shapedata* buf, unsigned short* ib, unsigned short bs, unsigned short is);
 void shape(shapedata* data, unsigned short* ib, unsigned short bs, unsigned short is, vec4 col);
 void shapecolor(vec4 col, unsigned short verts);
 
+#endif

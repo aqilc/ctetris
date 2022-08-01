@@ -1,17 +1,25 @@
 
-#include "graphics.h"
+#include "2dgraphics.h"
 
 // temporary stuff
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb/stb_image_write.h"
+// #define STB_IMAGE_WRITE_IMPLEMENTATION
+// #include "stb/stb_image_write.h"
 
+// Data for the texture atlas for fonts and shapes
 #define TEXTUREW 512
 #define TEXTUREH 512
 static unsigned short textsize = 48;
+
+// Data for drawing shapes
 static shapeheap* sh = NULL;
 static drawcontext* ctx = NULL;
-static unsigned short textures = 0;
-static charstore** cses = NULL;
+static char textures = 0;
+
+// Current font and font store
+static hashtable* cses = NULL;
+static char* font = NULL;
+
+// Context color
 static vec4 col = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 // Initializes everything for text, including setting up textures etc
@@ -33,9 +41,12 @@ void glinitgraphics() {
   sh->ib.size = 10;
   sh->ib.cur = 0;
   sh->enlarged = true;
+
+  cses = ht(10);
 }
 
-void tfont(charstore* cs) {
+void tfont(char* name) {
+  charstore* cs = htg(cses, name);
   if(!cs->gl) {
 
     // Sets active texture to the next one in the array
@@ -48,41 +59,48 @@ void tfont(charstore* cs) {
     // Sets the texture sampler to the one we just made
     setui("u_tex", textures);
     textures ++;
+    return;
   }
-  else {
-    activet(cs->slot);
-    bindt(cs->gl);
-    setui("u_tex", cs->slot);
-  }
+
+  activet(cs->slot);
+  bindt(cs->gl);
+  setui("u_tex", cs->slot);
 }
 
 void tsiz(unsigned short size) { textsize = size; }
-void text(charstore* cs, char* text, unsigned short x, unsigned short y) {
-
-  float scale = (float) textsize / 48;
-
+void text(char* text, unsigned short x, unsigned short y) {
+  float scale = (float) textsize / 48.0f;
   
   // Sets up context
   context(ctx);
-  if(!cs->gl) tfont(cs);
-  bindt(cs->gl);
+
+  // The charstore we're using to get the characters
+  charstore* cs;
+
+  // If there's no fonts loaded into the font store, don't draw anything
+  if(!cses->count) return;
+  else if(!font) {
+    font = ((charstore*) htg(cses, cses->keys[0]))->name;
+    tfont(font);
+    cs = htg(cses, font);
+  } else cs = htg(cses, font);
   
   // Sets up buffers
   unsigned int len = strlen(text);
-  shapedata* vb = malloc(4 * len * sizeof(shapedata)); // starting vertices, and then 2 per character
+  shapedata* vb = malloc(4 * len * sizeof(shapedata)); // 4 vertices per letter for the rectangle that the letter has
   unsigned short* ib = (unsigned short*) malloc(6 * sizeof(unsigned short) * len); // 6 vertices(2 triangles) per char
   
   // Generates every vertex
   unsigned short cur = sh->data.cur;
   float xp, yp, w, h, tx, ty, th, tw;
   vec4 col = { 1.0, 1.0, 1.0, 1.0 };
-  int i = 0;
+  unsigned int i = 0;
   for(; i < len; text++, i++) {
     Char* c = htg(cs->chars, new_c(*text));
     if(!c) printf("bruh wtf u drawin \"%c\"", *text);
     
-    xp = (float) x + c->bearing.x;
-    yp = (float) y + c->bearing.y - c->size.h;
+    xp = (float) x + c->bearing.x * scale;
+    yp = (float) y + c->bearing.y * scale - c->size.h * scale;
     w = (float) c->size.w * scale;
     h = (float) c->size.h * scale;
 
@@ -97,7 +115,7 @@ void text(charstore* cs, char* text, unsigned short x, unsigned short y) {
     vb[i * 4 + 3] = (shapedata) {{ xp + w, yp + h }, { tx + tw, ty }, { 1.0, 1.0, 1.0, 1.0 }};
 
     // Advance cursors for next glyph
-    x += c->advance;
+    x += c->advance * scale;
   }
   
   // Sets all of the indexes of the index buffer, pretty straightforward
@@ -148,13 +166,14 @@ charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
   vec texsize = { TEXTUREW, TEXTUREH };
   pog->texsize = texsize;
   pog->tex = malloc(pog->texsize.x * pog->texsize.y * sizeof(unsigned char));
+  pog->name = new_s(face->family_name);
 
   // Root node for the texture fitting algo
-  CharNode root = { .s = texsize };
-  
+  CharNode root = {.s = texsize};
+
   int len = strlen(chars);
   for(int i = 0; i < len; i ++) {
-    if(FT_Load_Char(face, chars[i], FT_LOAD_RENDER)) { printf("Failed to load glyph '%c'\n", i); }
+    if(FT_Load_Char(face, chars[i], FT_LOAD_RENDER)) printf("Failed to load glyph '%c'\n", chars[i]);
     
     int width = face->glyph->bitmap.width;
     int height = face->glyph->bitmap.rows;
@@ -189,9 +208,14 @@ charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
 
   // Draws a little white square in the corner of the texture atlas for shapes
   for(int i = 16; i > 0; i --) pog->tex[texsize.w * texsize.h - i % 4 - (i / 4 * texsize.h)] = 255;
-  
+
   // So we can ~~admire~~inspect the generated font atlas later
-  stbi_write_png("bitmap.png", texsize.w, texsize.w, 1, pog->tex, texsize.w);
+  //stbi_write_png("bitmap.png", texsize.w, texsize.w, 1, pog->tex, texsize.w);
+
+  // Sets it as the current font
+  hti(cses, new_s(pog->name), pog);
+  tfont(pog->name);
+
   return pog;
 }
 
@@ -245,11 +269,14 @@ void rect(int x, int y, int w, int h) {
 void c(float c1, float c2, float c3, float c4) {
   col[0] = c1; col[1] = c2; col[2] = c3; col[3] = c4; }
 
-static void shapeinsert(shapedata* buf, unsigned short* ib, size_t bs, size_t is) {
+void skip(drawprimitives prim, unsigned short n) {
+  sh->data.cur += n * 4;
+  sh->ib.cur += n * 6;
+}
+static void shapeinsert(shapedata* buf, unsigned short* ib, unsigned short bs, unsigned short is) {
 
   // If the memory buffer for the buffer data heap is not enough,
   if(sh->data.size < sh->data.cur + bs){
-    puts("adding stuff to vb");
 
     // Ask for bigger size
     sh->data.b = realloc(sh->data.b, sizeof(shapedata) * (sh->data.cur + bs));
@@ -265,14 +292,17 @@ static void shapeinsert(shapedata* buf, unsigned short* ib, size_t bs, size_t is
     sh->changed = true;
     sh->enlarged = true;
   }
-  else if (memcmp(sh->data.b + sh->data.cur, buf, bs)) {
+  // If it is enough, but the memory isn't the same
+  else// if (memcmp(sh->data.b + sh->data.cur, buf, bs))
+  {
+
+    // Copy the memory in and just change it
     memcpy(sh->data.b + sh->data.cur, buf, bs * sizeof(shapedata));
     sh->data.cur += bs;
     sh->changed = true;
-  } else sh->data.cur += bs;
+  }// else sh->data.cur += bs;
 
   if(sh->ib.size < sh->ib.cur + is){
-    puts("adding stuff to ib");
     sh->ib.b = realloc(sh->ib.b, sizeof(unsigned short) * (sh->ib.cur + is));
     memcpy(sh->ib.b + sh->ib.cur, ib, is * sizeof(unsigned short));
     sh->ib.cur += is;
@@ -280,9 +310,10 @@ static void shapeinsert(shapedata* buf, unsigned short* ib, size_t bs, size_t is
     sh->changed = true;
     sh->enlarged = true;
   }
-  else if (memcmp(sh->ib.b + sh->ib.cur, buf, is)) {
+  else// if (memcmp(sh->ib.b + sh->ib.cur, buf, is))
+  {
     memcpy(sh->ib.b + sh->ib.cur, ib, is * sizeof(unsigned short));
     sh->changed = true;
     sh->ib.cur += is;
-  } else sh->ib.cur += is;
+  }// else sh->ib.cur += is;
 }
