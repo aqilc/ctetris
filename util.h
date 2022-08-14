@@ -17,6 +17,7 @@ typedef struct CharNode {
   bool filled;
 } CharNode;
 CharNode* charnode_insert(CharNode* pnode, vec* size);
+void charnode_free(CharNode* root);
 
 typedef struct gamestate {
   double delta; // Delta time in the last frame
@@ -30,5 +31,4 @@ extern gamestate g;
 
 char* read(char* file);
 #endif
-
 

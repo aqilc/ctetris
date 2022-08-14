@@ -111,7 +111,7 @@ void coords_screen() {
   mat4x4_identity(p);
   
   // Creates a projection to screencoords
-  mat4x4_ortho(p, .0f, (float) g.width, .0f, (float) g.height, 1.0f, -1.f);
+  mat4x4_ortho(p, .0f, (float) g.width, (float) g.height, .0f, 1.0f, -1.f);
   setum4("u_mvp", p);
 }
 

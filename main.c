@@ -13,9 +13,11 @@
 #include FT_FREETYPE_H
 
 #include "2dgraphics.h"
+#include "tetris.h"
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 
 GLFWwindow* window;
@@ -24,7 +26,7 @@ gamestate g = { .width = 640, .height = 480, .frames = 0 };
 
 bool pressed = false;
 pvec pressplace;
-pvec mouse;
+struct { double x, y; bool pressed; } mouse;
 
 double frameaccum = 0;
 char framerate[12];
@@ -36,8 +38,8 @@ int main (void) {
     return -1;
   
   // GLFW hints
-  //glfwWindowHint(GLFW_DECORATED, GL_FALSE);
-  //glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GL_TRUE);
+  glfwWindowHint(GLFW_DECORATED, GL_FALSE);
+  glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GL_TRUE);
   glfwWindowHint(GLFW_SAMPLES, 4);
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
   
@@ -51,7 +53,7 @@ int main (void) {
   glfwMakeContextCurrent(window);
   
   // Set the framerate to the framerate of the screen.
-  //glfwSwapInterval(1);
+  glfwSwapInterval(.5);
   
   // Initialize GLEW so we can reference OpenGL functions.
   if(glewInit()/* != GLEW_OK */) {
@@ -79,7 +81,8 @@ int main (void) {
   // Loads most of the ASCII chars
   FT_Set_Pixel_Sizes(face, 0, 48);
   charstore* font = loadchars(ft, face, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890[]{}()/\\=+\'\"<>,.-_?|!@#$%^&* :");
-
+  FT_Done_Face(face);
+  FT_Done_FreeType(ft);
 
   // Sets the coordinate system to screen 1:1 pixel mapping
   coords_screen();
@@ -87,7 +90,13 @@ int main (void) {
   // GLFW input callbacks
   glfwSetMouseButtonCallback(window, mouse_button_callback);
   glfwSetCursorPosCallback(window, cursor_position_callback);
+  glfwSetKeyCallback(window, key_callback);
 
+  // Makes a tetris board
+  tetrisstate t = {.width = 10, .height = 20};
+  tetinit(&t);
+  t.x = 100;
+  t.y = 50;
 
   bool textchanged = true;
   while(!glfwWindowShouldClose(window)) {
@@ -108,15 +117,24 @@ int main (void) {
     glClear(GL_COLOR_BUFFER_BIT);
     //setu2f("mouse", (vec2) { (float) mouse.x, (float) mouse.y });
 
-    c(1.0f, .5f, .3f, 1.0f);
-    rect(100, 100, 200, 10);
+    // c(1.0f, .5f, .3f, 1.0f);
+    // rect(g.width - 150, g.height - 50, 200, -20);
 
     // printf("%.4f\n", g.delta);
     if(textchanged) {
+      c(.5f, .5f, .5f, 1.0f);
       tsiz(20);
-      text(framerate, 100, 100);
+      text(framerate, g.width - 130, g.height - 10);
       textchanged = false;
     } else skip(TEXT, strlen(framerate));
+
+    tetdraw(&t);
+
+    c(1.0f, 1.0f, 1.0f, 1.0f);
+    rect(0, 0, g.width, 1);
+    rect(0, g.height-1, g.width, 1);
+    rect(0, 0, 1, g.height);
+    rect(g.width-1, 0, 1, g.height);
 
     draw();
     //glfwSetWindowShouldClose(window, 1);
@@ -143,4 +161,8 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     glfwGetWindowPos(window, &wxpos, &wypos);
     glfwSetWindowPos(window, (int) (xpos - pressplace.x) + wxpos, (int) (ypos - pressplace.y) + wypos);
   }
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+  
 }

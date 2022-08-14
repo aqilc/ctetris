@@ -85,3 +85,13 @@ CharNode* charnode_insert(CharNode* pnode, vec* size) {
     return charnode_insert(pnode->child[1], size);
   return firstchildres;
 }
+
+// Frees the whole charnode linked list
+void charnode_free(CharNode* root) {
+  if(!root) return;
+
+  // Frees both children and then itself
+  charnode_free(root->child[0]);
+  charnode_free(root->child[1]);
+  free(root);
+}

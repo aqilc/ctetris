@@ -6,8 +6,7 @@
                 "${workspaceFolder}/**",
                 "${vcpkgRoot}/x64-windows/include",
                 "${vcpkgRoot}/x86-windows/include",
-                "d:/projects/libs/include",
-                "d:/Apps and Files/Apps/vcpkg/installed/x86-windows/include"
+                "D:/projects/libs/include"
             ],
             "defines": [
                 "_DEBUG",

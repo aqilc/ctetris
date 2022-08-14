@@ -96,11 +96,16 @@ void text(char* text, unsigned short x, unsigned short y) {
   vec4 col = { 1.0, 1.0, 1.0, 1.0 };
   unsigned int i = 0;
   for(; i < len; text++, i++) {
-    Char* c = htg(cs->chars, new_c(*text));
+
+    // Gets the Char object from the hashmap for the character lib
+    char* tmp = new_c(*text);
+    Char* c = htg(cs->chars, tmp);
+    free(tmp);
+    
     if(!c) printf("bruh wtf u drawin \"%c\"", *text);
     
     xp = (float) x + c->bearing.x * scale;
-    yp = (float) y + c->bearing.y * scale - c->size.h * scale;
+    yp = (float) y - c->bearing.y * scale;
     w = (float) c->size.w * scale;
     h = (float) c->size.h * scale;
 
@@ -109,10 +114,10 @@ void text(char* text, unsigned short x, unsigned short y) {
     tw = c->size.w / (float) cs->texsize.w;
     th = c->size.h / (float) cs->texsize.h;
     
-    vb[i * 4] = (shapedata) {{ xp, yp }, { tx, ty + th }, { 1.0, 1.0, 1.0, 1.0 }};
-    vb[i * 4 + 1] = (shapedata) {{ xp + w, yp }, { tx + tw, ty + th }, { 1.0, 1.0, 1.0, 1.0 }};
-    vb[i * 4 + 2] = (shapedata) {{ xp, yp + h }, { tx, ty }, { 1.0, 1.0, 1.0, 1.0 }};
-    vb[i * 4 + 3] = (shapedata) {{ xp + w, yp + h }, { tx + tw, ty }, { 1.0, 1.0, 1.0, 1.0 }};
+    vb[i * 4] = (shapedata) {{ xp, yp }, { tx, ty }, { col[0], col[1], col[2], col[3] }};
+    vb[i * 4 + 1] = (shapedata) {{ xp + w, yp }, { tx + tw, ty }, { col[0], col[1], col[2], col[3] }};
+    vb[i * 4 + 2] = (shapedata) {{ xp, yp + h }, { tx, ty + th }, { col[0], col[1], col[2], col[3] }};
+    vb[i * 4 + 3] = (shapedata) {{ xp + w, yp + h }, { tx + tw, ty + th }, { col[0], col[1], col[2], col[3] }};
 
     // Advance cursors for next glyph
     x += c->advance * scale;
@@ -130,6 +135,8 @@ void text(char* text, unsigned short x, unsigned short y) {
   }
 
   shapeinsert(vb, ib, 4 * len, 6 * len);
+  free(vb);
+  free(ib);
 }
 
 void draw() {
@@ -206,6 +213,9 @@ charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
     hti(pog->chars, new_c(chars[i]), ch);
   }
 
+  // Frees up a crap ton of memory
+  charnode_free(&root);
+
   // Draws a little white square in the corner of the texture atlas for shapes
   for(int i = 16; i > 0; i --) pog->tex[texsize.w * texsize.h - i % 4 - (i / 4 * texsize.h)] = 255;
 
@@ -247,7 +257,7 @@ void quad(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) {
 
 
 // Create a temporary array of texture coords so we can properly set them later
-float bruhwhyc[] = { 1.0f - 3.0f/ (float)TEXTUREW, 1.0f - 3.0f/ (float) TEXTUREH, 1.0f - 3.0f/ (float) TEXTUREW, 1.0f, 1.0f, 1.0f - 3.0f/ (float) TEXTUREH, 1.0f, 1.0f };
+static float bruhwhyc[] = { 1.0f - 2.5f/ (float)TEXTUREW, 1.0f - 2.5f/ (float) TEXTUREH, 1.0f - 2.5f/ (float) TEXTUREW, 1.0f, 1.0f, 1.0f - 2.5f/ (float) TEXTUREH, 1.0f, 1.0f };
 void shape(shapedata* data, unsigned short* ib, unsigned short bs, unsigned short is, vec4 col) {
   int cur = sh->data.cur;
   for(int i = 0; i < is; i ++) ib[i] += cur;
