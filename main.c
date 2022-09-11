@@ -119,8 +119,7 @@ int main (void) {
 
     // c(1.0f, .5f, .3f, 1.0f);
     // rect(g.width - 150, g.height - 50, 200, -20);
-
-    // printf("%.4f\n", g.delta);
+    
     if(textchanged) {
       c(.5f, .5f, .5f, 1.0f);
       tsiz(20);

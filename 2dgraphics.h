@@ -78,3 +78,4 @@ void shape(shapedata* data, unsigned short* ib, unsigned short bs, unsigned shor
 void shapecolor(vec4 col, unsigned short verts);
 
 #endif
+

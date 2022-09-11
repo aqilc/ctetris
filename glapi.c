@@ -45,8 +45,8 @@ unsigned short getsize(GLenum type) {
   switch(type) {
     case GL_BYTE:
     case GL_UNSIGNED_BYTE:
-      return 1; break;
-    default: return 4; break;
+      return 1;
+    default: return 4;
   }
 }
 

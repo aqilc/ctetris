@@ -214,7 +214,8 @@ charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
   }
 
   // Frees up a crap ton of memory
-  charnode_free(&root);
+  charnode_free(root.child[0]);
+  charnode_free(root.child[1]);
 
   // Draws a little white square in the corner of the texture atlas for shapes
   for(int i = 16; i > 0; i --) pog->tex[texsize.w * texsize.h - i % 4 - (i / 4 * texsize.h)] = 255;

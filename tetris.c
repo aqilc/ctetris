@@ -159,6 +159,11 @@ static void place(tetrisstate* s) {
 	}
 }
 
+static void collide(tetrisstate* s, piece* p, int px, int py, int rot) {
+
+	for(int i = 0; i < 4; i ++) {}
+}
+
 void tet_free(tetrisstate* s) { free(s->buf); free(s->qbuf); };
 
 // So I don't make a dumb typo :(

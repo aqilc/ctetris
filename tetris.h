@@ -25,9 +25,9 @@ typedef struct tetrisstate {
 
   // Piece things
   char piece;
-  TET_BOARD_T px;
-  TET_BOARD_T py;
-  TET_BOARD_T rot;
+  int px;
+  int py;
+  int rot;
   double bottom;
 
   // Queue
@@ -44,11 +44,11 @@ tetrisstate* tetinit(tetrisstate* s);
 void tetdraw(tetrisstate* board);
 static void drawblock(tetrisstate* board, char piece, int rot, int bx, int by);
 void tetstep(tetrisstate* s, double time);
+void tet_free(tetrisstate* s);
 static char* newqueue(void);
 static void spawn(tetrisstate* s);
 static void place(tetrisstate* s);
 inline char gp(TET_BOARD_T x, TET_BOARD_T y);
 inline char gpv(vect c);
-
 static char next(unsigned int n);
 
