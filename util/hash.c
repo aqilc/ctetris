@@ -18,7 +18,7 @@ int* new_i(int i) { int* v = malloc(sizeof(int)); *v = i; return v; }
 unsigned int* new_ui(unsigned int i) { unsigned int* v = malloc(sizeof(unsigned int)); *v = i; return v; }
 float* new_f(float f) { float* v = malloc(sizeof(float)); *v = f; return v; }
 char* new_c(char c) { char* s = malloc(2); s[0] = c; s[1] = '\0'; return s; }
-char* new_s(char* s) { size_t len = strlen(s); char *t = malloc(len + 1); strcpy_s(t, len + 1, s); return t; }
+char* new_s(char* s) { size_t len = strlen(s); char *t = malloc(len + 1); return strcpy(t, s); }
 
 // Insert into table ht
 hashtable* hti(hashtable* ht, char* key, void* data) {
