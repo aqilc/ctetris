@@ -1,9 +1,40 @@
 
+/*
+  TODO:
+  - Need to completely stop uploading draw buffers every frame
+  - 
+*/
+
 #include "2dgraphics.h"
 
 // temporary stuff
 // #define STB_IMAGE_WRITE_IMPLEMENTATION
 // #include "stb/stb_image_write.h"
+
+typedef struct shapedata {
+  vec2 pos;
+  vec2 tex;
+  vec4 col;
+} shapedata;
+
+typedef struct shapeheap {
+  struct {
+    shapedata* b;
+    unsigned short cur;
+    unsigned short size;
+  } data;
+  struct {
+    unsigned short* b;
+    unsigned short cur;
+    unsigned short size;
+  } ib;
+  unsigned int shapes;
+  bool changed;
+  bool enlarged;
+} shapeheap;
+
+static void shapeinsert(shapedata* buf, unsigned short* ib, unsigned short bs, unsigned short is);
+static void shape(shapedata* data, unsigned short* ib, unsigned short bs, unsigned short is, vec4 col);
 
 // Data for the texture atlas for fonts and shapes
 #define TEXTUREW 512
@@ -21,6 +52,9 @@ static char* font = NULL;
 
 // Context color
 static vec4 col = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+// Scenes api, to save as many draws and buffer swaps as possible :D
+// static int scene;
 
 // Initializes everything for text, including setting up textures etc
 void glinitgraphics() {
@@ -201,7 +235,7 @@ charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
     ch->size = size;
     ch->bearing = (vec) { face->glyph->bitmap_left, face->glyph->bitmap_top };
     ch->advance = face->glyph->advance.x >> 6; // bitshift by 6 to get value in pixels (2^6 = 64)
-    
+
     // Remembers the place of the glyph in the atlas
     ch->place.x = x;
     ch->place.y = y;
@@ -221,7 +255,7 @@ charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
   for(int i = 16; i > 0; i --) pog->tex[texsize.w * texsize.h - i % 4 - (i / 4 * texsize.h)] = 255;
 
   // So we can ~~admire~~inspect the generated font atlas later
-  //stbi_write_png("bitmap.png", texsize.w, texsize.w, 1, pog->tex, texsize.w);
+  // stbi_write_png("bitmap.png", texsize.w, texsize.w, 1, pog->tex, texsize.w);
 
   // Sets it as the current font
   hti(cses, new_s(pog->name), pog);
@@ -259,7 +293,7 @@ void quad(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) {
 
 // Create a temporary array of texture coords so we can properly set them later
 static float bruhwhyc[] = { 1.0f - 2.5f/ (float)TEXTUREW, 1.0f - 2.5f/ (float) TEXTUREH, 1.0f - 2.5f/ (float) TEXTUREW, 1.0f, 1.0f, 1.0f - 2.5f/ (float) TEXTUREH, 1.0f, 1.0f };
-void shape(shapedata* data, unsigned short* ib, unsigned short bs, unsigned short is, vec4 col) {
+static void shape(shapedata* data, unsigned short* ib, unsigned short bs, unsigned short is, vec4 col) {
   int cur = sh->data.cur;
   for(int i = 0; i < is; i ++) ib[i] += cur;
 
@@ -277,7 +311,7 @@ void rect(int x, int y, int w, int h) {
   quad(x, y, x + w, y, x, y + h, x + w, y + h);
 }
 
-void c(float c1, float c2, float c3, float c4) {
+void fill(float c1, float c2, float c3, float c4) {
   col[0] = c1; col[1] = c2; col[2] = c3; col[3] = c4; }
 
 void skip(drawprimitives prim, unsigned short n) {
@@ -306,7 +340,6 @@ static void shapeinsert(shapedata* buf, unsigned short* ib, unsigned short bs, u
   // If it is enough, but the memory isn't the same
   else// if (memcmp(sh->data.b + sh->data.cur, buf, bs))
   {
-
     // Copy the memory in and just change it
     memcpy(sh->data.b + sh->data.cur, buf, bs * sizeof(shapedata));
     sh->data.cur += bs;

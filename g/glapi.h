@@ -6,8 +6,8 @@
 #include <GL/glew.h>
 
 #include <linmath.h>
-#include "util/hash.h"
-#include "util.h"
+#include "../util/hash.h"
+#include "../util.h"
 
 struct ltype {
   GLuint type;

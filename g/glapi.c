@@ -178,7 +178,9 @@ unsigned int create_p(char* filename) {
   glAttachShader(program, fs);
   glLinkProgram(program);
   glValidateProgram(program);
-  
+
+  glDetachShader(program, vs);
+  glDetachShader(program, fs);
   glDeleteShader(vs);
   glDeleteShader(fs);
   

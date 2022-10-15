@@ -50,13 +50,13 @@ void tetdraw(tetrisstate* board) {
 	if(board->piece == '\0') spawn(board);
 	cur = board;
 	
-	c(0.f, 0.f, 0.f, 1.f);
+	fill(0.f, 0.f, 0.f, 1.f);
   rect(board->x, board->y, board->width * board->bsize.x, board->height * board->bsize.y);
 
 	for(int i = 0; i < board->width * (board->height + TET_BUFFER_ROWS); i ++){
 		if(!board->buf[i]) continue;
     float* col = getcol(board->buf[i]);
-    c(col[0], col[1], col[2], 1.f);
+    fill(col[0], col[1], col[2], 1.f);
 
     // Calculates x and y based on just the i value
     int x = i % board->width * board->bsize.x + board->x;
@@ -66,7 +66,7 @@ void tetdraw(tetrisstate* board) {
     rect(x, y, board->bsize.x, board->bsize.y);
 
     // Draws an outline around the block
-    c(col[0] + .196f, col[1] + .196f, col[2] + .196f, 1.f);
+    fill(col[0] + .196f, col[1] + .196f, col[2] + .196f, 1.f);
     rect(x, y, 1, board->bsize.y);
     rect(x + board->bsize.x - 1, y, 1, board->bsize.y);
     rect(x, y, board->bsize.x, 1);
@@ -88,9 +88,9 @@ static void drawblock(tetrisstate* board, char piece, int rot, int bx, int by) {
 	for(int i = 0; i < 4; i++) {
     int x = bx + b[i].x * board->bsize.x;
     int y = by + b[i].y * board->bsize.y;
-		c(col[0], col[1], col[2], 1.f);
+		fill(col[0], col[1], col[2], 1.f);
 		rect(x, y, board->bsize.x, board->bsize.y);
-    c(col[0] + .196f, col[1] + .196f, col[2] + .196f, 1.f);
+    fill(col[0] + .196f, col[1] + .196f, col[2] + .196f, 1.f);
     rect(x, y, 1, board->bsize.y);
     rect(x + board->bsize.x - 1, y, 1, board->bsize.y);
     rect(x, y, board->bsize.x, 1);
@@ -150,7 +150,7 @@ static char next(unsigned int n) {
 
 // Places the piece into the board exactly where it is at relatively
 static void place(tetrisstate* s) {
-	vect *p = ((block *) getp(s->piece) + s->rot);
+	vect* p = (vect *)((block *) getp(s->piece) + s->rot);
 	for(int i = 0; i < 4; i ++) {
 		int x = p[i].x + s->px;
     int y = p[i].y + s->py + TET_BUFFER_ROWS;

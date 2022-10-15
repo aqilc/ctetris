@@ -1,3 +1,8 @@
+/**
+ * TODO:
+ * - [2dgraphics] Set up scene API, make it as seamless as possible
+ */
+
 #include <stdio.h>
 #include <math.h>
 
@@ -12,7 +17,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-#include "2dgraphics.h"
+#include "g/2dgraphics.h"
 #include "tetris.h"
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
@@ -39,7 +44,7 @@ int main (void) {
   
   // GLFW hints
   glfwWindowHint(GLFW_DECORATED, GL_FALSE);
-  glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GL_TRUE);
+  // glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GL_TRUE);
   glfwWindowHint(GLFW_SAMPLES, 4);
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
   
@@ -52,7 +57,7 @@ int main (void) {
   /* Make the window's context current */
   glfwMakeContextCurrent(window);
   
-  // Set the framerate to the framerate of the screen.
+  // Set the framerate to the framerate of the screen / 2.
   glfwSwapInterval(.5);
   
   // Initialize GLEW so we can reference OpenGL functions.
@@ -117,11 +122,11 @@ int main (void) {
     glClear(GL_COLOR_BUFFER_BIT);
     //setu2f("mouse", (vec2) { (float) mouse.x, (float) mouse.y });
 
-    // c(1.0f, .5f, .3f, 1.0f);
+    // fill(1.0f, .5f, .3f, 1.0f);
     // rect(g.width - 150, g.height - 50, 200, -20);
     
     if(textchanged) {
-      c(.5f, .5f, .5f, 1.0f);
+      fill(.5f, .5f, .5f, 1.0f);
       tsiz(20);
       text(framerate, g.width - 130, g.height - 10);
       textchanged = false;
@@ -129,7 +134,7 @@ int main (void) {
 
     tetdraw(&t);
 
-    c(1.0f, 1.0f, 1.0f, 1.0f);
+    fill(1.0f, 1.0f, 1.0f, 1.0f);
     rect(0, 0, g.width, 1);
     rect(0, g.height-1, g.width, 1);
     rect(0, 0, 1, g.height);
