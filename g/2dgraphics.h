@@ -4,6 +4,7 @@
 
 // #include "util.h"
 #include "glapi.h"
+#include "../vec.h"
 #include <linmath.h>
 
 #include <ft2build.h>
@@ -11,11 +12,11 @@
 
 typedef struct Char {
   // Place in texture
-  char c;
-  vec place;
-  vec size;
-  vec bearing;
-  unsigned int advance;
+  u8 c;
+  union vec place;
+  union vec size;
+  union vec bearing;
+  u32 advance;
 } Char;
 
 typedef struct charstore {
@@ -23,9 +24,9 @@ typedef struct charstore {
   hashtable* chars;
   
   // Opengl stuffs
-  unsigned char* tex;
-  vec texsize;
-  unsigned int gl;
+  u8* tex;
+  union vec texsize;
+  u32 gl;
   GLuint slot;
 } charstore;
 charstore* loadchars(FT_Library ft, FT_Face face, char* chars);
@@ -41,18 +42,17 @@ void glinitgraphics();
 
 // Text things(took so longgggggggg)
 void tfont(char* name);
-void tsiz(unsigned short size);
-void text(char* text, unsigned short x, unsigned short y);
+void tsiz(u16 size);
+void text(char* text, u16 x, u16 y);
 
 // Draw related commands
 void draw(void);
-void quad(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
 void rect(int x, int y, int w, int h);
 void fill(float c1, float c2, float c3, float c4);
 
 // Advanced stuff
-void skip(drawprimitives prim, unsigned short n);
-void shapecolor(vec4 col, unsigned short verts);
+void skip(drawprimitives prim, u16 n);
+void shapecolor(vec4 col, u16 verts);
 
 #endif
 

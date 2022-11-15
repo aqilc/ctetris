@@ -30,5 +30,3 @@ char* new_s(char* s);
 int htgi(hashtable* h, char* key);
 unsigned int htgui(hashtable* h, char* key);
 float htgf(hashtable* h, char* key);
-
-static void pushs(hashtable* h, char* s);

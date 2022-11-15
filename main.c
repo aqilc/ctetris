@@ -76,9 +76,9 @@ int main (void) {
   // Loads the freetype library and font.
   FT_Library ft; FT_Face face;
   if(FT_Init_FreeType(&ft)) {
-    printf("Couldn't init freetype :(\n"); return -1; }
+    puts("Couldn't init freetype :(\n"); return -1; }
   if(FT_New_Face(ft, "d:/projects/c/ctetris/res/fonts/iosevka-bold.ttf", 0, &face)) {
-    printf("Couldn't load font :(\n"); return -1; }
+    puts("Couldn't load font :(\n"); return -1; }
 
   // Initializes text shaders and context
   glinitgraphics();

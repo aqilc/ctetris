@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include "hash.h"
 
+static void pushs(hashtable* h, char* s);
+
 // Creates a table of specified size
 hashtable* ht(unsigned short size) {
   hashtable* h = malloc(sizeof(hashtable));
@@ -45,7 +47,6 @@ hashtable* hti(hashtable* ht, char* key, void* data) {
 
   // Pushes the key onto the keys array
   pushs(ht, key);
-  
   return ht;
 }
 
@@ -77,8 +78,8 @@ float htgf(hashtable* h, char* key) { return *(float*) htg(h, key); }
 // Pushes a string onto the keystore of the hashtable, reallocs 4 ptrs at a time for perf
 static void pushs(hashtable* h, char* s) {
   if(h->count >= h->keyssize) {
-    h->keys = realloc(h->keys, sizeof(char *) * (h->keyssize + 4));
     h->keyssize += 4;
+    h->keys = realloc(h->keys, sizeof(char *) * h->keyssize);
   }
   h->keys[h->count] = s;
   h->count++;

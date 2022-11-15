@@ -18,7 +18,8 @@ for /f "tokens=*" %%F in ('dir /b /a:-d ".\util\*.c"') do call set c=%%c%% ".\ut
 for /f "tokens=*" %%F in ('dir /b /a:-d ".\g\*.c"') do call set c=%%c%% ".\g\%%F"
 echo running %c%
 %c%
-link freetype.lib glew32s.lib shell32.lib Gdi32.lib user32.lib opengl32.lib glfw3.lib ./bin/*.obj /nologo /LIBPATH:d:\projects\libs\bin\ /NODEFAULTLIB:libcmt.lib /OUT:main.exe /ENTRY:mainCRTStartup /SUBSYSTEM:WINDOWS
+link freetype.lib glew32s.lib shell32.lib Gdi32.lib user32.lib opengl32.lib glfw3.lib ./bin/*.obj /nologo /LIBPATH:d:\projects\libs\bin\ /NODEFAULTLIB:libcmt.lib /OUT:main.exe
+rem  /ENTRY:mainCRTStartup /SUBSYSTEM:WINDOWS
 
 rem gcc -O3 -Id:\projects\libs\include\ -I"d:\Apps and Files\Apps\vcpkg\installed\x86-windows\include" main.c util.c -lfreetype -lglew32s -lshell32 -lGdi32 -luser32 -lopengl32 -lglfw3 -Ld:\projects\libs\bin
 

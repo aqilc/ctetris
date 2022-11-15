@@ -3,20 +3,20 @@
 
 #include <stdbool.h>
 
-typedef union vec {
+union vec {
   struct { int x; int y; };
   struct { int w; int h; };
-} vec;
+};
 typedef struct pvec { double x, y; } pvec;
 
 
 typedef struct CharNode {
-  vec p; // Place
-  vec s; // Size
+  union vec p; // Place
+  union vec s; // Size
   struct CharNode* child[2];
   bool filled;
 } CharNode;
-CharNode* charnode_insert(CharNode* pnode, vec* size);
+CharNode* charnode_insert(CharNode* pnode, union vec* size);
 void charnode_free(CharNode* root);
 
 typedef struct gamestate {

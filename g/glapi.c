@@ -59,7 +59,7 @@ void lpush(vlayout* l, GLuint type, unsigned char count, bool normalized) {
   (*cur)->normalized = normalized;
 }
 void lpushf(vlayout* l, unsigned char count) { l->stride += 4 * count; lpush(l, GL_FLOAT, count, false); }
-void lpushc(vlayout* l, unsigned char count) { l->stride += 1 * count; lpush(l, GL_UNSIGNED_BYTE, count, true); }
+// void lpushc(vlayout* l, unsigned char count) { l->stride += 1 * count; lpush(l, GL_UNSIGNED_BYTE, count, true); }
 void lpushi(vlayout* l, unsigned char count) { l->stride += 4 * count; lpush(l, GL_INT, count, false); }
 
 void lapply(vlayout* l) {
@@ -94,7 +94,7 @@ void setui(char* name, unsigned int p) { glUniform1i(getloc(name), p); }
 void setu3f(char* name, vec3 p) { glUniform3f(getloc(name), p[0], p[1], p[2]); }
 void setu2f(char* name, vec2 p) { glUniform2f(getloc(name), p[0], p[1]); }
 
-void context(drawcontext* c) { cur_ctx = c; bindp(c->pid); binda(c->vaid); }
+void setcontext(drawcontext* c) { cur_ctx = c; bindp(c->pid); binda(c->vaid); }
 void initcontext(drawcontext** d, char* shaderfile) {
   (*d) = (drawcontext*) calloc(sizeof(drawcontext), 1);
   (*d)->pid = create_p(shaderfile);
@@ -127,6 +127,9 @@ GLuint texture(unsigned char* buf, int width, int height, GLenum format) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+  // glGenerateMipmap(GL_TEXTURE_2D);
   
   // Sends texture data to the gpu
   glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, buf);

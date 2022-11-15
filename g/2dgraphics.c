@@ -2,7 +2,9 @@
 /*
   TODO:
   - Need to completely stop uploading draw buffers every frame
-  - 
+  - TEXTURES AND IMAGES WHEN BRUH
+    - current model
+      - 
 */
 
 #include "2dgraphics.h"
@@ -10,6 +12,9 @@
 // temporary stuff
 // #define STB_IMAGE_WRITE_IMPLEMENTATION
 // #include "stb/stb_image_write.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
 
 typedef struct shapedata {
   vec2 pos;
@@ -20,31 +25,47 @@ typedef struct shapedata {
 typedef struct shapeheap {
   struct {
     shapedata* b;
-    unsigned short cur;
-    unsigned short size;
+    u16 cur;
+    u16 size;
   } data;
   struct {
-    unsigned short* b;
-    unsigned short cur;
-    unsigned short size;
+    u16* b;
+    u16 cur;
+    u16 size;
   } ib;
-  unsigned int shapes;
+  u32 shapes;
   bool changed;
   bool enlarged;
 } shapeheap;
 
-static void shapeinsert(shapedata* buf, unsigned short* ib, unsigned short bs, unsigned short is);
-static void shape(shapedata* data, unsigned short* ib, unsigned short bs, unsigned short is, vec4 col);
+typedef struct imagedata {
+  u32 id;
+  GLuint slot;
+  GLenum type;
+  union vec size;
+  bool charstore;
+} imagedata;
+static u32 imageslen = 0;
+static imagedata* images = NULL;
+
+static void shapeinsert(shapedata* buf, u16* ib, u16 bs, u16 is);
+static void shape(shapedata* data, u16* ib, u16 bs, u16 is, vec4 col);
+
+struct bufib { shapedata* buf; u16* ib; };
+static struct bufib quad(shapedata* buf, u16* ib, int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
+
+static u32 imageinsert(imagedata* image);
 
 // Data for the texture atlas for fonts and shapes
 #define TEXTUREW 512
 #define TEXTUREH 512
-static unsigned short textsize = 48;
+static u16 textsize = 48;
 
 // Data for drawing shapes
 static shapeheap* sh = NULL;
 static drawcontext* ctx = NULL;
 static char textures = 0;
+static u32 tex = 0;
 
 // Current font and font store
 static hashtable* cses = NULL;
@@ -79,6 +100,10 @@ void glinitgraphics() {
   cses = ht(10);
 }
 
+
+
+
+// ---------------- Text things ---------------- //
 void tfont(char* name) {
   charstore* cs = htg(cses, name);
   if(!cs->gl) {
@@ -89,6 +114,8 @@ void tfont(char* name) {
     // Gets textureid and stuff
     cs->gl = texture(cs->tex, cs->texsize.w, cs->texsize.h, GL_RED);
     cs->slot = textures;
+
+    // printf("charstore put into slot %d\n", cs->gl);
 
     // Sets the texture sampler to the one we just made
     setui("u_tex", textures);
@@ -101,34 +128,35 @@ void tfont(char* name) {
   setui("u_tex", cs->slot);
 }
 
-void tsiz(unsigned short size) { textsize = size; }
-void text(char* text, unsigned short x, unsigned short y) {
+void tsiz(u16 size) { textsize = size; }
+void text(char* text, u16 x, u16 y) {
   float scale = (float) textsize / 48.0f;
   
   // Sets up context
-  context(ctx);
+  // setcontext(ctx);
 
   // The charstore we're using to get the characters
-  charstore* cs;
+  charstore* cs = NULL;
 
   // If there's no fonts loaded into the font store, don't draw anything
   if(!cses->count) return;
   else if(!font) {
     font = ((charstore*) htg(cses, cses->keys[0]))->name;
-    tfont(font);
+    // tfont(font);
     cs = htg(cses, font);
   } else cs = htg(cses, font);
   
   // Sets up buffers
-  unsigned int len = strlen(text);
+  u32 len = strlen(text);
   shapedata* vb = malloc(4 * len * sizeof(shapedata)); // 4 vertices per letter for the rectangle that the letter has
-  unsigned short* ib = (unsigned short*) malloc(6 * sizeof(unsigned short) * len); // 6 vertices(2 triangles) per char
+  u16* ib = malloc(6 * sizeof(u16) * len); // 6 vertices(2 triangles) per char
   
   // Generates every vertex
-  unsigned short cur = sh->data.cur;
+  u16 cur = sh->data.cur;
+  GLuint slot = cs->slot;
   float xp, yp, w, h, tx, ty, th, tw;
   vec4 col = { 1.0, 1.0, 1.0, 1.0 };
-  unsigned int i = 0;
+  u32 i = 0;
   for(; i < len; text++, i++) {
 
     // Gets the Char object from the hashmap for the character lib
@@ -176,18 +204,19 @@ void text(char* text, unsigned short x, unsigned short y) {
 void draw() {
   if(!ctx->vbid) {
     ctx->vbid = create_vb(sh->data.b, sh->data.cur * sizeof(shapedata));
-    ctx->ibid = create_ib(sh->ib.b, sh->ib.cur * sizeof(unsigned short));
+    ctx->ibid = create_ib(sh->ib.b, sh->ib.cur * sizeof(u16));
     lapply(ctx->layout);
   } else if(sh->enlarged) {
     // bindv(ctx->vbid);
     glBufferData(GL_ARRAY_BUFFER, sh->data.cur * sizeof(shapedata), sh->data.b, GL_DYNAMIC_DRAW);
     // bindi(ctx->ibid);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sh->ib.cur * sizeof(unsigned short), sh->ib.b, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sh->ib.cur * sizeof(u16), sh->ib.b, GL_DYNAMIC_DRAW);
+    // sh->enlarged = false;
   } else if(sh->changed) {
     // bindv(ctx->vbid);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sh->data.cur * sizeof(shapedata), sh->data.b);
     // bindi(ctx->ibid);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sh->ib.cur * sizeof(unsigned short), sh->ib.b);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sh->ib.cur * sizeof(u16), sh->ib.b);
   }
 
   glDrawElements(GL_TRIANGLES, sh->ib.cur, GL_UNSIGNED_SHORT, NULL);//sh->ib.b);
@@ -204,9 +233,9 @@ charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
   // Creates a new charstore
   charstore* pog = calloc(sizeof(charstore), 1);
   pog->chars = ht(200);
-  vec texsize = { TEXTUREW, TEXTUREH };
+  union vec texsize = { TEXTUREW, TEXTUREH };
   pog->texsize = texsize;
-  pog->tex = malloc(pog->texsize.x * pog->texsize.y * sizeof(unsigned char));
+  pog->tex = malloc(pog->texsize.x * pog->texsize.y * sizeof(u8));
   pog->name = new_s(face->family_name);
 
   // Root node for the texture fitting algo
@@ -218,7 +247,7 @@ charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
     
     int width = face->glyph->bitmap.width;
     int height = face->glyph->bitmap.rows;
-    vec size = { width, height };
+    union vec size = { width, height };
       
     CharNode* rec = charnode_insert(&root, &size);
     if(!rec) { printf("Could not fit char %c into the texture map\n", chars[i]); break; }
@@ -233,7 +262,7 @@ charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
     Char* ch = malloc(sizeof(Char));
     ch->c = chars[i];
     ch->size = size;
-    ch->bearing = (vec) { face->glyph->bitmap_left, face->glyph->bitmap_top };
+    ch->bearing = (union vec) { face->glyph->bitmap_left, face->glyph->bitmap_top };
     ch->advance = face->glyph->advance.x >> 6; // bitshift by 6 to get value in pixels (2^6 = 64)
 
     // Remembers the place of the glyph in the atlas
@@ -259,15 +288,16 @@ charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
 
   // Sets it as the current font
   hti(cses, new_s(pog->name), pog);
+  printf("Font \"%s\" loaded\n", pog->name);
   tfont(pog->name);
 
   return pog;
 }
 
-void quad(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) {
+static struct bufib quad(shapedata* buf, u16* ib, int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) {
 
   // Creates the shape
-  shapedata buf[4];
+  // shapedata* buf = malloc(sizeof(shapedata) * 4);
   buf[0].pos[0] = (float) x1;
   buf[1].pos[0] = (float) x2;
   buf[2].pos[0] = (float) x3;
@@ -278,7 +308,7 @@ void quad(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) {
   buf[3].pos[1] = (float) y4;
 
   // Creates the index buffer
-  unsigned short ib[6];
+  // u16* ib = malloc(sizeof(u16) * 6);
   ib[0] = 0;
   ib[1] = 1;
   ib[2] = 2;
@@ -286,39 +316,42 @@ void quad(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) {
   ib[4] = 2;
   ib[5] = 3;
 
-  shape(buf, ib, 4, 6, col);
-  shapeinsert(buf, ib, 4, 6);
+  return (struct bufib) { buf, ib };
 }
 
 
 // Create a temporary array of texture coords so we can properly set them later
 static float bruhwhyc[] = { 1.0f - 2.5f/ (float)TEXTUREW, 1.0f - 2.5f/ (float) TEXTUREH, 1.0f - 2.5f/ (float) TEXTUREW, 1.0f, 1.0f, 1.0f - 2.5f/ (float) TEXTUREH, 1.0f, 1.0f };
-static void shape(shapedata* data, unsigned short* ib, unsigned short bs, unsigned short is, vec4 col) {
+static void shape(shapedata* data, u16* ib, u16 bs, u16 is, vec4 col) {
   int cur = sh->data.cur;
   for(int i = 0; i < is; i ++) ib[i] += cur;
 
   // Sets up color and texture coords for all 4 verts at once
-  for(char i = 0; i < bs; i ++)
-    memcpy(data[i].col, col, sizeof(vec4)), memcpy(data[i].tex, bruhwhyc + (i%4) * 2, sizeof(vec2));
+  for(int i = 0; i < bs; i ++)
+    memcpy(&data[i].col, col, sizeof(vec4)), memcpy(&data[i].tex, bruhwhyc + (i % 4) * 2, sizeof(vec2));
 }
 
-void shapecolor(vec4 col, unsigned short verts) {
-  for(unsigned short i = verts; i > 0; i --)
+void shapecolor(vec4 col, u16 verts) {
+  for(int i = verts; i > 0; i --)
     memcpy(sh->data.b[sh->data.cur - i].col, col, sizeof(vec4));
 }
 
 void rect(int x, int y, int w, int h) {
-  quad(x, y, x + w, y, x, y + h, x + w, y + h);
+  u16 ib[6]; shapedata verts[4];
+  struct bufib hi = quad(verts, ib, x, y, x + w, y, x, y + h, x + w, y + h);
+  shape(hi.buf, hi.ib, 4, 6, col);
+  shapeinsert(hi.buf, hi.ib, 4, 6);
 }
+
 
 void fill(float c1, float c2, float c3, float c4) {
   col[0] = c1; col[1] = c2; col[2] = c3; col[3] = c4; }
 
-void skip(drawprimitives prim, unsigned short n) {
+void skip(drawprimitives prim, u16 n) {
   sh->data.cur += n * 4;
   sh->ib.cur += n * 6;
 }
-static void shapeinsert(shapedata* buf, unsigned short* ib, unsigned short bs, unsigned short is) {
+static void shapeinsert(shapedata* buf, u16* ib, u16 bs, u16 is) {
 
   // If the memory buffer for the buffer data heap is not enough,
   if(sh->data.size < sh->data.cur + bs){
@@ -347,8 +380,8 @@ static void shapeinsert(shapedata* buf, unsigned short* ib, unsigned short bs, u
   }// else sh->data.cur += bs;
 
   if(sh->ib.size < sh->ib.cur + is){
-    sh->ib.b = realloc(sh->ib.b, sizeof(unsigned short) * (sh->ib.cur + is));
-    memcpy(sh->ib.b + sh->ib.cur, ib, is * sizeof(unsigned short));
+    sh->ib.b = realloc(sh->ib.b, sizeof(u16) * (sh->ib.cur + is));
+    memcpy(sh->ib.b + sh->ib.cur, ib, is * sizeof(u16));
     sh->ib.cur += is;
     sh->ib.size = sh->ib.cur;
     sh->changed = true;
@@ -356,8 +389,46 @@ static void shapeinsert(shapedata* buf, unsigned short* ib, unsigned short bs, u
   }
   else// if (memcmp(sh->ib.b + sh->ib.cur, buf, is))
   {
-    memcpy(sh->ib.b + sh->ib.cur, ib, is * sizeof(unsigned short));
+    memcpy(sh->ib.b + sh->ib.cur, ib, is * sizeof(u16));
     sh->changed = true;
     sh->ib.cur += is;
   }// else sh->ib.cur += is;
 }
+
+
+// ---------------- Image things ---------------- //
+
+// Returns id of texture
+GLuint loadimage(char* path) {
+  int x, y, n;
+  u8* data = stbi_load(path, &x, &y, &n, 4);
+  printf("succesfully loaded in texture %s (%dx%d) with %d channels", path, x, y, n);
+  GLuint t = texture(data, x, y, GL_RGBA);
+  stbi_image_free(data);
+  return t;
+}
+
+static void pushimage() {
+  if(images == NULL) images = malloc();
+}
+static void creategpuimage() {
+  
+}
+static void bindimage() {
+  
+}
+
+void image(GLuint image, int x, int y, int w, int h) {
+  glDrawElements();
+}
+
+
+static u32 imageinsert(imagedata* image) {
+  if(!images) {
+    images = malloc(sizeof(imagedata));
+    imageslen ++;
+  } else images = malloc((++ imageslen) * sizeof(imagedata));
+  images[imageslen] = *image;
+}
+
+

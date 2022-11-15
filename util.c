@@ -30,7 +30,7 @@ char* read(char* file) {
   return contents;
 }
 
-CharNode* charnode_insert(CharNode* pnode, vec* size) {
+CharNode* charnode_insert(CharNode* pnode, union vec* size) {
   if(pnode->child[0] == NULL || pnode->child[1] == NULL) {
     
     // If the node is already filled

@@ -42,7 +42,7 @@ GLuint texture(unsigned char* buf, int width, int height, GLenum format);
 
 void lpush(vlayout* l, GLuint type, unsigned char count, bool normalized);
 void lpushf(vlayout* l, unsigned char count);
-void lpushc(vlayout* l, unsigned char count);
+// void lpushc(vlayout* l, unsigned char count);
 void lpushi(vlayout* l, unsigned char count);
 void lapply(vlayout* l);
 
@@ -52,7 +52,7 @@ void setum4(char* name, mat4x4 p);
 void setui(char* name, unsigned int p);
 void setu3f(char* name, vec3 p);
 
-void context(drawcontext* c);
+void setcontext(drawcontext* c);
 void initcontext(drawcontext** d, char* shaderfile);
 
 void coords_screen(void);

@@ -49,35 +49,47 @@ tetrisstate* tetinit(tetrisstate* s) {
 void tetdraw(tetrisstate* board) {
 	if(board->piece == '\0') spawn(board);
 	cur = board;
+
+	int bx = board->x;
+	int by = board->y;
+	int bw = board->width;
+	int bh = board->height;
+	int blx = board->bsize.x;
+	int bly = board->bsize.y;
 	
 	fill(0.f, 0.f, 0.f, 1.f);
-  rect(board->x, board->y, board->width * board->bsize.x, board->height * board->bsize.y);
+  rect(bx, by, bw * blx, bh * bly);
 
-	for(int i = 0; i < board->width * (board->height + TET_BUFFER_ROWS); i ++){
+  fill(1.f, 1.f, 1.f, 1.f);
+  rect(bx - 2, by, 2, bh * bly);
+  rect(bx + bw * blx - 2, by, 2, bh * bly);
+  rect(bx, by + bh * bly - 2, bw * blx, 2);
+
+	for (int i = 0; i < bw * (bh + TET_BUFFER_ROWS); i ++) {
 		if(!board->buf[i]) continue;
     float* col = getcol(board->buf[i]);
     fill(col[0], col[1], col[2], 1.f);
 
     // Calculates x and y based on just the i value
-    int x = i % board->width * board->bsize.x + board->x;
-    int y = (i / board->width) * board->bsize.y + board->y;
+    int x = i % bw * blx + bx;
+    int y = (i / bw) * bly + by;
 
     // Base block
-    rect(x, y, board->bsize.x, board->bsize.y);
+    rect(x, y, blx, bly);
 
     // Draws an outline around the block
     fill(col[0] + .196f, col[1] + .196f, col[2] + .196f, 1.f);
-    rect(x, y, 1, board->bsize.y);
-    rect(x + board->bsize.x - 1, y, 1, board->bsize.y);
-    rect(x, y, board->bsize.x, 1);
-    rect(x, y + board->bsize.y - 1, board->bsize.x, 1);
+    rect(x, y, 1, bly);
+    rect(x + blx - 1, y, 1, bly);
+    rect(x, y, blx, 1);
+    rect(x, y + bly - 1, blx, 1);
   }
 
-	drawblock(board, board->piece, board->rot, board->px * board->bsize.x + board->x, board->py * board->bsize.y + board->y);
+	drawblock(board, board->piece, board->rot, board->px * blx + bx, board->py * bly + by);
 
 	// Draws the queue
 	for(int i = 0; i < 5; i ++)
-		drawblock(board, next(i), 0, board->x + board->width * board->bsize.x + 20, board->y + 10 + i * 50);
+		drawblock(board, next(i), 0, bx + bw * blx + 20, by + 10 + i * 50);
 
 	
 }

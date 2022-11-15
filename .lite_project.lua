@@ -5,6 +5,8 @@
 
 local config = require "core.config"
 
+config.plugins.lsp = false
+
 -- you can add some patterns to ignore files within the project
 config.ignore_files = {"^%.", "build", "out"}
 
