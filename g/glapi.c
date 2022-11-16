@@ -38,7 +38,7 @@ void bindv(GLuint id) { glBindBuffer(GL_ARRAY_BUFFER, id); cur_vb = id; }
 void bindi(GLuint id) { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id); cur_ib = id; }
 void bindp(GLuint id) { glUseProgram(id); cur_prog = id; }
 
-void activet(char slot) { glActiveTexture(GL_TEXTURE0 + slot); }
+void activet(GLenum slot) { glActiveTexture(GL_TEXTURE0 + slot); }
 void bindt(GLuint id) { glBindTexture(GL_TEXTURE_2D, id); }
 
 unsigned short getsize(GLenum type) {

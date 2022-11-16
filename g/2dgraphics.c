@@ -38,15 +38,6 @@ typedef struct shapeheap {
   bool enlarged;
 } shapeheap;
 
-typedef struct imagedata {
-  u32 id;
-  GLuint slot;
-  GLenum type;
-  union vec size;
-  bool charstore;
-} imagedata;
-static u32 imageslen = 0;
-static imagedata* images = NULL;
 
 static void shapeinsert(shapedata* buf, u16* ib, u16 bs, u16 is);
 static void shape(shapedata* data, u16* ib, u16 bs, u16 is, vec4 col);
@@ -54,12 +45,18 @@ static void shape(shapedata* data, u16* ib, u16 bs, u16 is, vec4 col);
 struct bufib { shapedata* buf; u16* ib; };
 static struct bufib quad(shapedata* buf, u16* ib, int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
 
-static u32 imageinsert(imagedata* image);
+static imagedata* imageinsert(imagedata* image);
+static void useslot(u32 slot);
+static GLuint freeslot();
 
 // Data for the texture atlas for fonts and shapes
 #define TEXTUREW 512
 #define TEXTUREH 512
 static u16 textsize = 48;
+
+// Keeps track of drawn images so we don't have extreme perf penalties when drawing images
+static u32 imageslen = 0;
+static imagedata* images = NULL;
 
 // Data for drawing shapes
 static shapeheap* sh = NULL;
@@ -398,37 +395,73 @@ static void shapeinsert(shapedata* buf, u16* ib, u16 bs, u16 is) {
 
 // ---------------- Image things ---------------- //
 
-// Returns id of texture
-GLuint loadimage(char* path) {
+
+imagedata* loadimage(char* path) {
   int x, y, n;
   u8* data = stbi_load(path, &x, &y, &n, 4);
   printf("succesfully loaded in texture %s (%dx%d) with %d channels", path, x, y, n);
+
+  GLenum slot = findslot();
+  activet(slot); useslot(slot);
   GLuint t = texture(data, x, y, GL_RGBA);
+
+  u32 hi = hash(path, strlen(path));
+  imagedata img = {
+    .id = hi, .type = GL_RGBA, .slot = slot,
+    .size = (union vec) { .w = x; .h = y; },
+    .uses = 0, .charstore = false
+  };
+  
   stbi_image_free(data);
-  return t;
+  return imageinsert(&img);
 }
 
-static void pushimage() {
-  if(images == NULL) images = malloc();
+
+static u32 usedslots = 1; // USE BITWISE OPS TO KEEP TRACK OF THE SLOTS OMG WTH SO BIG BRAIN
+// Set to 1 because first slot is probably used by charstore, and
+// i haven't put charstores into this array yet
+static void useslot(u32 slot) {
+  if (slot > 32) return;
+  u32 s = (u32) 1 << slot;
+  if(usedslots & (u32) 1 << slot) { usedslots -= s; return; }
+  usedslots += s;
 }
-static void creategpuimage() {
+static GLuint freeslot() {
+  for(GLuint i = 0; i < 32; i ++)
+    if(~(usedslots >> i) & 1) return i;
+  return 4294967295; // u32 max for fun :D
+}
+
+static GLuint findslot() {
+  GLuint slot = freeslot();
+  if(slot < 33) return slot;
+  for(int i = 0; i < imageslen; i ++)
+    if(image[i].charstore || image[i].slot > 32) continue;
+    else if (image[i].uses == 0) return image[i].slot;
   
 }
-static void bindimage() {
+
+static void bindimage(imagedata* img) {
+  setui("u_tex", img->slot);
+}
+
+void image(imagedata* image, int x, int y, int w, int h) {
+  bindimage(image);
+  shapedata tl = {
+    { }
+  };
+  glBufferSubData()
   
-}
-
-void image(GLuint image, int x, int y, int w, int h) {
-  glDrawElements();
+  glDrawElements(GL_TRIANGLES, 6, GL_FLOAT, );
 }
 
 
-static u32 imageinsert(imagedata* image) {
-  if(!images) {
-    images = malloc(sizeof(imagedata));
-    imageslen ++;
-  } else images = malloc((++ imageslen) * sizeof(imagedata));
+static imagedata* imageinsert(imagedata* image) {
+  if(!images) images = malloc(sizeof(imagedata));
+  else images = realloc(images, (++ imageslen) * sizeof(imagedata));
   images[imageslen] = *image;
+  imageslen ++;
+  return images + imageslen - 1;
 }
 
 

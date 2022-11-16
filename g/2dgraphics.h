@@ -31,10 +31,20 @@ typedef struct charstore {
 } charstore;
 charstore* loadchars(FT_Library ft, FT_Face face, char* chars);
 
+typedef struct imagedata {
+  u32 id;
+  GLuint slot;
+  GLenum type;
+  u16 uses;
+  union vec size;
+  bool charstore;
+} imagedata;
+
 typedef enum {
   QUAD,
   TEXT
 } drawprimitives;
+
 
 
 // Init for opengl
