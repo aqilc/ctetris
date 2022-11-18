@@ -1,10 +1,13 @@
 
 /*
   TODO:
-  - Need to completely stop uploading draw buffers every frame
-  - TEXTURES AND IMAGES WHEN BRUH
-    - current model
-      - 
+  - [ ] Keep track of the order of things with z axis
+  - [ ] Need to completely stop uploading the whole draw buffer every frame
+  - [ ] Put the main charstore in the actual like system
+  - [ ] Use a sampler2d array in the shader to draw up to 32 textures at once, which would enable a lot more granularity and speed a lot of things up.
+    - [ ] Would also require a bool array but it's fine we can come up with the solution later
+  DONE(OMG WTH NICE BRO):
+  - [x] TEXTURES AND IMAGES WHEN BRUH!??!?!?!??!?! I NEED THAT HOT ANIME GIRL BG!!!!!!
 */
 
 #include "2dgraphics.h"
@@ -48,6 +51,7 @@ static struct bufib quad(shapedata* buf, u16* ib, int x1, int y1, int x2, int y2
 static imagedata* imageinsert(imagedata* image);
 static void useslot(u32 slot);
 static GLuint freeslot();
+static GLuint findslot();
 
 // Data for the texture atlas for fonts and shapes
 #define TEXTUREW 512
@@ -126,7 +130,7 @@ void tfont(char* name) {
 }
 
 void tsiz(u16 size) { textsize = size; }
-void text(char* text, u16 x, u16 y) {
+void text(char* text, int x, int y) {
   float scale = (float) textsize / 48.0f;
   
   // Sets up context
@@ -199,6 +203,8 @@ void text(char* text, u16 x, u16 y) {
 }
 
 void draw() {
+  setui("u_tex", 0);
+  setui("u_shape", true);
   if(!ctx->vbid) {
     ctx->vbid = create_vb(sh->data.b, sh->data.cur * sizeof(shapedata));
     ctx->ibid = create_ib(sh->ib.b, sh->ib.cur * sizeof(u16));
@@ -399,7 +405,7 @@ static void shapeinsert(shapedata* buf, u16* ib, u16 bs, u16 is) {
 imagedata* loadimage(char* path) {
   int x, y, n;
   u8* data = stbi_load(path, &x, &y, &n, 4);
-  printf("succesfully loaded in texture %s (%dx%d) with %d channels", path, x, y, n);
+  printf("succesfully loaded in texture %s (%dx%d) with %d channels\n", path, x, y, n);
 
   GLenum slot = findslot();
   activet(slot); useslot(slot);
@@ -408,7 +414,7 @@ imagedata* loadimage(char* path) {
   u32 hi = hash(path, strlen(path));
   imagedata img = {
     .id = hi, .type = GL_RGBA, .slot = slot,
-    .size = (union vec) { .w = x; .h = y; },
+    .size = (union vec) { .w = x, .h = y },
     .uses = 0, .charstore = false
   };
   
@@ -421,7 +427,7 @@ static u32 usedslots = 1; // USE BITWISE OPS TO KEEP TRACK OF THE SLOTS OMG WTH 
 // Set to 1 because first slot is probably used by charstore, and
 // i haven't put charstores into this array yet
 static void useslot(u32 slot) {
-  if (slot > 32) return;
+  if (slot > 31) return;
   u32 s = (u32) 1 << slot;
   if(usedslots & (u32) 1 << slot) { usedslots -= s; return; }
   usedslots += s;
@@ -434,25 +440,36 @@ static GLuint freeslot() {
 
 static GLuint findslot() {
   GLuint slot = freeslot();
-  if(slot < 33) return slot;
+  if(slot < 32) return slot;
   for(int i = 0; i < imageslen; i ++)
-    if(image[i].charstore || image[i].slot > 32) continue;
-    else if (image[i].uses == 0) return image[i].slot;
-  
+    if(images[i].charstore || images[i].slot > 32) continue;
+    else if (images[i].uses == 0) return images[i].slot;
+  return 31;
 }
 
 static void bindimage(imagedata* img) {
   setui("u_tex", img->slot);
+  setui("u_shape", false);
 }
 
-void image(imagedata* image, int x, int y, int w, int h) {
+void image(imagedata* image, int ix, int iy, int iw, int ih) {
+  if(!ctx->vbid) return;
   bindimage(image);
-  shapedata tl = {
-    { }
+  // binda(ctx->vaid);
+  // bindv(ctx->vbid);
+  float x = ix; float y = iy; float w = iw; float h = ih;
+  float tw = image->size.w; float th = image->size.h;
+  shapedata tl[6] = {
+    {{  x, y  }, {0.f, 0.f}, {col[0], col[1], col[2], col[3]}},
+    {{  x, y+h}, {0.f, 1.f}, {col[0], col[1], col[2], col[3]}},
+    {{x+w, y  }, {1.f, 0.f}, {col[0], col[1], col[2], col[3]}},
+    {{x+w, y  }, {1.f, 0.f}, {col[0], col[1], col[2], col[3]}},
+    {{  x, y+h}, {0.f, 1.f}, {col[0], col[1], col[2], col[3]}},
+    {{x+w, y+h}, {1.f, 1.f}, {col[0], col[1], col[2], col[3]}},
   };
-  glBufferSubData()
+  glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(tl), tl);
   
-  glDrawElements(GL_TRIANGLES, 6, GL_FLOAT, );
+  glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 

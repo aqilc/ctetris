@@ -103,6 +103,8 @@ int main (void) {
   t.x = 100;
   t.y = 50;
 
+  imagedata* img = loadimage("D:\\projects\\c\\ctetris\\res\\img\\img1.png");
+
   bool textchanged = true;
   while(!glfwWindowShouldClose(window)) {
 
@@ -139,6 +141,9 @@ int main (void) {
     rect(0, g.height-1, g.width, 1);
     rect(0, 0, 1, g.height);
     rect(g.width-1, 0, 1, g.height);
+
+    fill(0.f, 0.f, 0.f, 0.f);
+    image(img, 0, 0, img->size.w, img->size.h);
 
     draw();
     //glfwSetWindowShouldClose(window, 1);

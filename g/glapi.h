@@ -35,7 +35,7 @@ void bindv(GLuint id);
 void bindi(GLuint id);
 void bindp(GLuint id);
 
-void activet(char slot);
+void activet(GLenum slot);
 void bindt(GLuint id);
 GLuint texture(unsigned char* buf, int width, int height, GLenum format);
 
