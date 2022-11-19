@@ -19,7 +19,7 @@ typedef struct Char {
   u32 advance;
 } Char;
 
-typedef struct charstore {
+typedef struct typeface {
   char* name;
   hashtable* chars;
   
@@ -28,8 +28,10 @@ typedef struct charstore {
   union vec texsize;
   u32 gl;
   GLuint slot;
-} charstore;
-charstore* loadchars(FT_Library ft, FT_Face face, char* chars);
+} typeface;
+typeface* loadfont(char* file);
+void doneloadingfonts();
+typeface* loadchars(FT_Face face, char* chars);
 
 typedef struct imagedata {
   u32 id;
@@ -37,7 +39,7 @@ typedef struct imagedata {
   GLenum type;
   u16 uses;
   union vec size;
-  bool charstore;
+  bool typeface;
 } imagedata;
 
 typedef enum {
@@ -61,7 +63,7 @@ void rect(int x, int y, int w, int h);
 void fill(float c1, float c2, float c3, float c4);
 
 // Advanced stuff
-void skip(drawprimitives prim, u16 n);
+void skiprec(u16 n);
 void shapecolor(vec4 col, u16 verts);
 
 imagedata* loadimage(char* path);

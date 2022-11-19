@@ -3,14 +3,24 @@
   TODO:
   - [ ] Keep track of the order of things with z axis
   - [ ] Need to completely stop uploading the whole draw buffer every frame
-  - [ ] Put the main charstore in the actual like system
+  - [ ] Add rounded shapes
+    - [ ] Probably separate draw call ;w;
+  - [ ] Add dynamic shapes, like begin(), vertex(), bezier() or something like that
+    - More shapes than quad in the first place
+    - Would require new shader systems and draw calls
+  - [ ] Put the main typeface in the actual like system
   - [ ] Use a sampler2d array in the shader to draw up to 32 textures at once, which would enable a lot more granularity and speed a lot of things up.
     - [ ] Would also require a bool array but it's fine we can come up with the solution later
+  - [ ] Precompile shaders to SPIR-V
   DONE(OMG WTH NICE BRO):
+  - [x] Remove `loadchars`, make it simpler for user
+    - [x] Init freetype in glinitgraphics()
+    - [x] loadfont()
   - [x] TEXTURES AND IMAGES WHEN BRUH!??!?!?!??!?! I NEED THAT HOT ANIME GIRL BG!!!!!!
 */
 
 #include "2dgraphics.h"
+#include <freetype/fterrors.h>
 
 // temporary stuff
 // #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -18,6 +28,11 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
+
+
+#define STRINGIFY(x) STRINGIFY2(x)
+#define STRINGIFY2(x) #x
+#define _LINE STRINGIFY(__LINE__)
 
 typedef struct shapedata {
   vec2 pos;
@@ -75,11 +90,28 @@ static char* font = NULL;
 // Context color
 static vec4 col = { 1.0f, 1.0f, 1.0f, 1.0f };
 
+static FT_Library ft;
+static FT_Face* faces = NULL; // Array of faces so user doesn't have to take care of deallocating them later.. at least that's the idea i think
+static u32 faceslen = 0;
+
 // Scenes api, to save as many draws and buffer swaps as possible :D
 // static int scene;
 
 // Initializes everything for text, including setting up textures etc
 void glinitgraphics() {
+  
+  // Sets the debug message callback so we can detect opengl errors
+  glDebugMessageCallback(MessageCallback, NULL);
+
+  // Enables blending
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  
+  // Loads the freetype library.
+  if(FT_Init_FreeType(&ft))
+    puts("Couldn't init freetype :(\nLine: "_LINE" | File: "__FILE__"\n");
+
+  // Initialized VA and shaders
   initcontext(&ctx, "d:/projects/c/ctetris/res/shaders/graphics.glsl");
 
   // Sets up layout
@@ -101,25 +133,41 @@ void glinitgraphics() {
   cses = ht(10);
 }
 
+typeface* loadfont(char* file) {
+  if(!faces) faces = malloc(sizeof(FT_Face));
+  else faces = realloc(faces, sizeof(FT_Face) * (faceslen + 1));
+  FT_Face* face = &faces[faceslen];
+  faceslen++;
+  if(FT_New_Face(ft, file, 0, face)) {
+    printf("Couldn't load font '%s' :(\nLine: "_LINE" | File: "__FILE__"\n", file); return NULL; }
+  FT_Set_Pixel_Sizes(*face, 0, 48);
+  return loadchars(*face, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890[]{}()/\\=+\'\"<>,.-_?|!@#$%^&* :");
+}
 
-
+void doneloadingfonts() {
+  for(u32 i = 0; i < faceslen; i ++)
+    FT_Done_Face(faces[i]);
+  free(faces);
+  FT_Done_FreeType(ft);
+}
 
 // ---------------- Text things ---------------- //
 void tfont(char* name) {
-  charstore* cs = htg(cses, name);
+  typeface* cs = htg(cses, name);
   if(!cs->gl) {
 
     // Sets active texture to the next one in the array
-    activet(textures);
+    GLuint slot = findslot();
+    activet(slot);
 
     // Gets textureid and stuff
     cs->gl = texture(cs->tex, cs->texsize.w, cs->texsize.h, GL_RED);
-    cs->slot = textures;
+    cs->slot = slot;
 
-    // printf("charstore put into slot %d\n", cs->gl);
+    // printf("typeface put into slot %d\n", cs->gl);
 
     // Sets the texture sampler to the one we just made
-    setui("u_tex", textures);
+    setui("u_tex", slot);
     textures ++;
     return;
   }
@@ -136,13 +184,13 @@ void text(char* text, int x, int y) {
   // Sets up context
   // setcontext(ctx);
 
-  // The charstore we're using to get the characters
-  charstore* cs = NULL;
+  // The typeface we're using to get the characters
+  typeface* cs = NULL;
 
   // If there's no fonts loaded into the font store, don't draw anything
   if(!cses->count) return;
   else if(!font) {
-    font = ((charstore*) htg(cses, cses->keys[0]))->name;
+    font = ((typeface*) htg(cses, cses->keys[0]))->name;
     // tfont(font);
     cs = htg(cses, font);
   } else cs = htg(cses, font);
@@ -183,7 +231,7 @@ void text(char* text, int x, int y) {
     vb[i * 4 + 3] = (shapedata) {{ xp + w, yp + h }, { tx + tw, ty + th }, { col[0], col[1], col[2], col[3] }};
 
     // Advance cursors for next glyph
-    x += c->advance * scale;
+    x += (float) c->advance * scale;
   }
   
   // Sets all of the indexes of the index buffer, pretty straightforward
@@ -231,10 +279,10 @@ void draw() {
   sh->enlarged = false;
 }
 
-charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
+typeface* loadchars(FT_Face face, char* chars) {
   
-  // Creates a new charstore
-  charstore* pog = calloc(sizeof(charstore), 1);
+  // Creates a new typeface
+  typeface* pog = calloc(sizeof(typeface), 1);
   pog->chars = ht(200);
   union vec texsize = { TEXTUREW, TEXTUREH };
   pog->texsize = texsize;
@@ -246,7 +294,8 @@ charstore* loadchars(FT_Library ft, FT_Face face, char* chars) {
 
   int len = strlen(chars);
   for(int i = 0; i < len; i ++) {
-    if(FT_Load_Char(face, chars[i], FT_LOAD_RENDER)) printf("Failed to load glyph '%c'\n", chars[i]);
+    FT_Error error = FT_Load_Char(face, chars[i], FT_LOAD_RENDER);
+    if(error) printf("Failed to load glyph '%c' (error code: %d | Line: "_LINE" | File: "__FILE__")\n", chars[i], error);
     
     int width = face->glyph->bitmap.width;
     int height = face->glyph->bitmap.rows;
@@ -350,7 +399,7 @@ void rect(int x, int y, int w, int h) {
 void fill(float c1, float c2, float c3, float c4) {
   col[0] = c1; col[1] = c2; col[2] = c3; col[3] = c4; }
 
-void skip(drawprimitives prim, u16 n) {
+void skiprec(u16 n) {
   sh->data.cur += n * 4;
   sh->ib.cur += n * 6;
 }
@@ -415,7 +464,7 @@ imagedata* loadimage(char* path) {
   imagedata img = {
     .id = hi, .type = GL_RGBA, .slot = slot,
     .size = (union vec) { .w = x, .h = y },
-    .uses = 0, .charstore = false
+    .uses = 0, .typeface = false
   };
   
   stbi_image_free(data);
@@ -424,8 +473,8 @@ imagedata* loadimage(char* path) {
 
 
 static u32 usedslots = 1; // USE BITWISE OPS TO KEEP TRACK OF THE SLOTS OMG WTH SO BIG BRAIN
-// Set to 1 because first slot is probably used by charstore, and
-// i haven't put charstores into this array yet
+// Set to 1 because first slot is probably used by typeface, and
+// i haven't put typefaces into this array yet
 static void useslot(u32 slot) {
   if (slot > 31) return;
   u32 s = (u32) 1 << slot;
@@ -442,12 +491,13 @@ static GLuint findslot() {
   GLuint slot = freeslot();
   if(slot < 32) return slot;
   for(int i = 0; i < imageslen; i ++)
-    if(images[i].charstore || images[i].slot > 32) continue;
+    if(images[i].typeface || images[i].slot > 32) continue;
     else if (images[i].uses == 0) return images[i].slot;
   return 31;
 }
 
 static void bindimage(imagedata* img) {
+  if(img->slot > 32)
   setui("u_tex", img->slot);
   setui("u_shape", false);
 }

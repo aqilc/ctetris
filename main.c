@@ -58,36 +58,17 @@ int main (void) {
   glfwMakeContextCurrent(window);
   
   // Set the framerate to the framerate of the screen / 2.
-  glfwSwapInterval(.5);
+  // glfwSwapInterval(.5);
   
   // Initialize GLEW so we can reference OpenGL functions.
   if(glewInit()/* != GLEW_OK */) {
     printf("error with initializing glew");
     glfwTerminate(); return -1; }
-  
-  // Sets the debug message callback so we can detect opengl errors
-  glDebugMessageCallback(MessageCallback, NULL);
-
-  // Enables blending
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  
-  
-  // Loads the freetype library and font.
-  FT_Library ft; FT_Face face;
-  if(FT_Init_FreeType(&ft)) {
-    puts("Couldn't init freetype :(\n"); return -1; }
-  if(FT_New_Face(ft, "d:/projects/c/ctetris/res/fonts/iosevka-bold.ttf", 0, &face)) {
-    puts("Couldn't load font :(\n"); return -1; }
 
   // Initializes text shaders and context
   glinitgraphics();
-
-  // Loads most of the ASCII chars
-  FT_Set_Pixel_Sizes(face, 0, 48);
-  charstore* font = loadchars(ft, face, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890[]{}()/\\=+\'\"<>,.-_?|!@#$%^&* :");
-  FT_Done_Face(face);
-  FT_Done_FreeType(ft);
+  typeface* font = loadfont("d:/projects/c/ctetris/res/fonts/iosevka-bold.ttf");
+  doneloadingfonts();
 
   // Sets the coordinate system to screen 1:1 pixel mapping
   coords_screen();
@@ -114,7 +95,7 @@ int main (void) {
     g.frames ++;
     frameaccum += 1.0/g.delta;
 
-    // If there have been more than 10 accumulated frames, reset the accumulation and update framecount
+    // If there have been more than 100 accumulated frames, reset the accumulation and update framecount
     if(g.frames % 100 == 0) {
       snprintf(framerate, sizeof(framerate), "%.2f fps", frameaccum/100);
       frameaccum = 0;
@@ -132,7 +113,7 @@ int main (void) {
       tsiz(20);
       text(framerate, g.width - 130, g.height - 10);
       textchanged = false;
-    } else skip(TEXT, strlen(framerate));
+    } else skiprec(strlen(framerate));
 
     tetdraw(&t);
 
