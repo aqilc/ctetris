@@ -20,7 +20,6 @@
 */
 
 #include "2dgraphics.h"
-#include <freetype/fterrors.h>
 
 // temporary stuff
 // #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -59,14 +58,15 @@ typedef struct shapeheap {
 
 static void shapeinsert(shapedata* buf, u16* ib, u16 bs, u16 is);
 static void shape(shapedata* data, u16* ib, u16 bs, u16 is, vec4 col);
-
-struct bufib { shapedata* buf; u16* ib; };
-static struct bufib quad(shapedata* buf, u16* ib, int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
-
 static imagedata* imageinsert(imagedata* image);
 static void useslot(u32 slot);
 static GLuint freeslot();
 static GLuint findslot();
+
+struct bufib { shapedata* buf; u16* ib; };
+static struct bufib quad(shapedata* buf, u16* ib, int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
+
+
 
 // Data for the texture atlas for fonts and shapes
 #define TEXTUREW 512
@@ -255,7 +255,7 @@ void draw() {
   setui("u_shape", true);
   if(!ctx->vbid) {
     ctx->vbid = create_vb(sh->data.b, sh->data.cur * sizeof(shapedata));
-    ctx->ibid = create_ib(sh->ib.b, sh->ib.cur * sizeof(u16));
+    ctx->ibid = create_ib(sh->ib.b, sh->ib.cur);
     lapply(ctx->layout);
   } else if(sh->enlarged) {
     // bindv(ctx->vbid);
@@ -457,14 +457,15 @@ imagedata* loadimage(char* path) {
   printf("succesfully loaded in texture %s (%dx%d) with %d channels\n", path, x, y, n);
 
   GLenum slot = findslot();
-  activet(slot); useslot(slot);
+  printf("Used slot %d\n", slot);
+  activet(slot);
   GLuint t = texture(data, x, y, GL_RGBA);
 
   u32 hi = hash(path, strlen(path));
   imagedata img = {
     .id = hi, .type = GL_RGBA, .slot = slot,
     .size = (union vec) { .w = x, .h = y },
-    .uses = 0, .typeface = false
+    .uses = 0, .typeface = false, .name = new_s(path)
   };
   
   stbi_image_free(data);
@@ -472,7 +473,7 @@ imagedata* loadimage(char* path) {
 }
 
 
-static u32 usedslots = 1; // USE BITWISE OPS TO KEEP TRACK OF THE SLOTS OMG WTH SO BIG BRAIN
+static u32 usedslots = 0; // USE BITWISE OPS TO KEEP TRACK OF THE SLOTS OMG WTH SO BIG BRAIN
 // Set to 1 because first slot is probably used by typeface, and
 // i haven't put typefaces into this array yet
 static void useslot(u32 slot) {
@@ -489,7 +490,7 @@ static GLuint freeslot() {
 
 static GLuint findslot() {
   GLuint slot = freeslot();
-  if(slot < 32) return slot;
+  if(slot < 32) { useslot(slot); return slot; }
   for(int i = 0; i < imageslen; i ++)
     if(images[i].typeface || images[i].slot > 32) continue;
     else if (images[i].uses == 0) return images[i].slot;
@@ -497,7 +498,7 @@ static GLuint findslot() {
 }
 
 static void bindimage(imagedata* img) {
-  if(img->slot > 32)
+  if(img->slot > 31) return printf("Invalid slot %d\n", img->slot);
   setui("u_tex", img->slot);
   setui("u_shape", false);
 }
@@ -525,7 +526,7 @@ void image(imagedata* image, int ix, int iy, int iw, int ih) {
 
 static imagedata* imageinsert(imagedata* image) {
   if(!images) images = malloc(sizeof(imagedata));
-  else images = realloc(images, (++ imageslen) * sizeof(imagedata));
+  else images = realloc(images, (imageslen + 1) * sizeof(imagedata));
   images[imageslen] = *image;
   imageslen ++;
   return images + imageslen - 1;

@@ -85,6 +85,8 @@ int main (void) {
   t.y = 50;
 
   imagedata* img = loadimage("D:\\projects\\c\\ctetris\\res\\img\\img1.png");
+  imagedata* csm = loadimage("D:\\projects\\c\\ctetris\\res\\img\\csm.jpg");
+  imagedata* bg = loadimage("D:\\projects\\c\\ctetris\\res\\img\\girl.jpg");
 
   bool textchanged = true;
   while(!glfwWindowShouldClose(window)) {
@@ -124,7 +126,7 @@ int main (void) {
     rect(g.width-1, 0, 1, g.height);
 
     fill(0.f, 0.f, 0.f, 0.f);
-    image(img, 0, 0, img->size.w, img->size.h);
+    image(csm, 0, 0, g.width, g.height);
 
     draw();
     //glfwSetWindowShouldClose(window, 1);

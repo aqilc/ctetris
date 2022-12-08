@@ -11,3 +11,5 @@ Software: ctetris
 License: MIT
 
 This licence applies to all files authored by @AqilCont (aqilcm@gmail.com)
+
+Licence grabbed from https://commonsclause.com/

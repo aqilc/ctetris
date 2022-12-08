@@ -27,4 +27,12 @@ I know no sane person is going to try to use this in production, but I put a Com
 
 Please Email me(aqilcm@gmail.com) about it and I'll try to do my best to respond. Feel free to spam it as long as I don't.
 
+## `2dgraphics.c` docs.
+> I don't know if it deserves an actual name but this is fine for now.
+
+### Normal Draw commands
+
+Things like `rect` and `text` are "normal" draw commands, they're drawn in the next `draw` call.
+
+- `rect`
 

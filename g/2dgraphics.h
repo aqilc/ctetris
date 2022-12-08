@@ -40,6 +40,7 @@ typedef struct imagedata {
   u16 uses;
   union vec size;
   bool typeface;
+  char* name; // Heap string
 } imagedata;
 
 typedef enum {

@@ -6,6 +6,14 @@
 // All of the variables with the tetris data and mappings :D
 #include "tetdata.h"
 
+
+static char* newqueue(void);
+static void spawn(tetrisstate* s);
+static void place(tetrisstate* s);
+static inline char gp(TET_BOARD_T x, TET_BOARD_T y);
+static inline char gpv(vect c);
+static char next(unsigned int n);
+
 // Current board pointer, so we can emit a param from certain functions, like `gp`
 static tetrisstate* cur = NULL;
 
@@ -179,6 +187,6 @@ static void collide(tetrisstate* s, piece* p, int px, int py, int rot) {
 void tet_free(tetrisstate* s) { free(s->buf); free(s->qbuf); };
 
 // So I don't make a dumb typo :(
-inline char gp(TET_BOARD_T x, TET_BOARD_T y) { return cur->buf[x + y * cur->width]; }
-inline char gpv(vect c) { return cur->buf[c.x + c.y * cur->width]; }
+static inline char gp(TET_BOARD_T x, TET_BOARD_T y) { return cur->buf[x + y * cur->width]; }
+static inline char gpv(vect c) { return cur->buf[c.x + c.y * cur->width]; }
 
