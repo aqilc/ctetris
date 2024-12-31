@@ -3,8 +3,7 @@
  * - [2dgraphics] Set up scene API, make it as seamless as possible
  */
 
-#include <stdio.h>
-#include <math.h>
+// Timing logic i can maybe look into: https://stackoverflow.com/questions/20390028/c-using-glfwgettime-for-a-fixed-time-step
 
 // GLEW, for opengl functions
 #define GLEW_STATIC
@@ -12,10 +11,6 @@
 
 // Window management
 #include <GLFW/glfw3.h>
-
-
-#include <ft2build.h>
-#include FT_FREETYPE_H
 
 #include "g/2dgraphics.h"
 #include "tetris.h"
@@ -32,6 +27,7 @@ gamestate g = { .width = 640, .height = 480, .frames = 0 };
 bool pressed = false;
 pvec pressplace;
 struct { double x, y; bool pressed; } mouse;
+
 
 double frameaccum = 0;
 char framerate[12];
@@ -154,6 +150,7 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     glfwSetWindowPos(window, (int) (xpos - pressplace.x) + wxpos, (int) (ypos - pressplace.y) + wypos);
   }
 }
+
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
   

@@ -12,6 +12,7 @@
   - [ ] Use a sampler2d array in the shader to draw up to 32 textures at once, which would enable a lot more granularity and speed a lot of things up.
     - [ ] Would also require a bool array but it's fine we can come up with the solution later
   - [ ] Precompile shaders to SPIR-V
+  - [ ] Draw 3d Shapes
   DONE(OMG WTH NICE BRO):
   - [x] Remove `loadchars`, make it simpler for user
     - [x] Init freetype in glinitgraphics()
@@ -161,7 +162,7 @@ void tfont(char* name) {
     activet(slot);
 
     // Gets textureid and stuff
-    cs->gl = texture(cs->tex, cs->texsize.w, cs->texsize.h, GL_RED);
+    cs->gl = texture(cs->tex, cs->texsize.w, cs->texsize.h, GL_RED, true);
     cs->slot = slot;
 
     // printf("typeface put into slot %d\n", cs->gl);
@@ -459,7 +460,7 @@ imagedata* loadimage(char* path) {
   GLenum slot = findslot();
   printf("Used slot %d\n", slot);
   activet(slot);
-  GLuint t = texture(data, x, y, GL_RGBA);
+  GLuint t = texture(data, x, y, GL_RGBA, false);
 
   u32 hi = hash(path, strlen(path));
   imagedata img = {
@@ -474,8 +475,6 @@ imagedata* loadimage(char* path) {
 
 
 static u32 usedslots = 0; // USE BITWISE OPS TO KEEP TRACK OF THE SLOTS OMG WTH SO BIG BRAIN
-// Set to 1 because first slot is probably used by typeface, and
-// i haven't put typefaces into this array yet
 static void useslot(u32 slot) {
   if (slot > 31) return;
   u32 s = (u32) 1 << slot;
@@ -500,7 +499,7 @@ static GLuint findslot() {
 static void bindimage(imagedata* img) {
   if(img->slot > 31) return printf("Invalid slot %d\n", img->slot);
   setui("u_tex", img->slot);
-  setui("u_shape", false);
+  setui("u_shape", img->typeface);
 }
 
 void image(imagedata* image, int ix, int iy, int iw, int ih) {

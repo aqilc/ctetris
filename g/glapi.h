@@ -37,7 +37,7 @@ void bindp(GLuint id);
 
 void activet(GLenum slot);
 void bindt(GLuint id);
-GLuint texture(unsigned char* buf, int width, int height, GLenum format);
+GLuint texture(unsigned char* buf, int width, int height, GLenum format, bool texture);
 
 
 void lpush(vlayout* l, GLuint type, unsigned char count, bool normalized);

@@ -115,7 +115,7 @@ void coords_screen() {
   setum4("u_mvp", p);
 }
 
-GLuint texture(unsigned char* buf, int width, int height, GLenum format) {
+GLuint texture(unsigned char* buf, int width, int height, GLenum format, bool typeface) {
   GLuint t;
   
   // Generates and binds the texture
@@ -127,12 +127,16 @@ GLuint texture(unsigned char* buf, int width, int height, GLenum format) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  
-  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-  // glGenerateMipmap(GL_TEXTURE_2D);
-  
+
   // Sends texture data to the gpu
   glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, buf);
+
+
+  // We just don't need mipmaps for fonts so we do this for normal images
+  if(!typeface) {
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
   
   return t;
 }

@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include "tetris.h"
 
 // All of the variables with the tetris data and mappings :D
